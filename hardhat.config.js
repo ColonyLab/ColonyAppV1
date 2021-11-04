@@ -4,6 +4,7 @@
 require('dotenv').config()
 require("hardhat-gas-reporter");
 require('hardhat-contract-sizer');
+require("@nomiclabs/hardhat-waffle");
 
 module.exports = {
   solidity: {
