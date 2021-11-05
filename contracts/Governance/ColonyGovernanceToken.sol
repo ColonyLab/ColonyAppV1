@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Snapshot.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract Colony is ERC20, ERC20Snapshot, Ownable {
+contract ColonyGovernanceToken is ERC20, ERC20Snapshot, Ownable {
     constructor() ERC20("Colony", "CLY") {
 		uint256 initSupply = 150 * 1000000 * (10 ** super.decimals());
 		super._mint(super.owner(), initSupply);
