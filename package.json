@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "test": "npx hardhat test"
+    "test": "npx hardhat test",
+    "check": "solhint -c .solhint.json contracts/**/*.sol"
   },
   "repository": {
     "type": "git",
