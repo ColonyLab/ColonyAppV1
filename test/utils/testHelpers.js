@@ -1,5 +1,6 @@
 const { ether } = require('@openzeppelin/test-helpers');
 const { create, all } = require('mathjs')
+const {expect} = require("chai");
 const config = {}
 const mathjs = create(all, config)
 
@@ -67,6 +68,29 @@ const getEventsFromTransaction = async (transaction) => {
     return result
 }
 
+const hasEmittedEvent = async function (promise, expectedEvent, expectedParams = {}) {
+    promise.catch(() => { }); // Avoids uncaught promise rejections in case an input validation causes us to return early
+
+    if (!expectedEvent) {
+        throw Error('No event specified');
+    }
+
+    const receipt = await (await promise).wait()
+    let eventNamePresent = false
+    for(let x in receipt.events){
+        if(receipt.events[x].event == expectedEvent){
+            eventNamePresent = true
+            for(let y in expectedParams){
+                expect(receipt.events[x].args, 'Emmited event "'+ expectedEvent +'" doesn\'t contain expected property "'+ y +'" with value "'+ expectedParams[y] +'"')
+                    .to.has.property(y)
+                    .that.is.eq(expectedParams[y])
+            }
+            break
+        }
+    }
+    expect(eventNamePresent).to.equal(true, 'Transaction didn\'t emit "'+ expectedEvent +'" event')
+}
+
 module.exports = {
     tokens,
     fromWei,
@@ -77,5 +101,6 @@ module.exports = {
     getTime,
     keccak256,
     toUtf8Bytes,
-    getEventsFromTransaction
+    getEventsFromTransaction,
+    hasEmittedEvent
 }
