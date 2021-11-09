@@ -1,0 +1,18 @@
+image: node:14.18.1-alpine
+
+stages:
+  - install
+  - test
+
+build:
+  stage: install
+  script:
+    - npm install -q
+  only:
+    - merge_requests
+
+test:
+  stage: test
+  script: npm run test
+  only:
+    - merge_requests
