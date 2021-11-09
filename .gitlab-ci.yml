@@ -3,14 +3,35 @@ default:
   tags:
     - node
 
+variables:
+  npm_config_cache: "$CI_PROJECT_DIR/.npm"
+
+.dependencies_cache:
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - .npm
+    policy: pull
+
 stages:
-  - install
+  - setup
   - test
 
-install:
-  stage: install
+setup:
+  stage: setup
   script:
-    - npm install -q
+    - apk add --no-cache git
+    - apk add --no-cache python3 py3-pip
+    - npm ci
+  extends: .dependencies_cache
+  cache:
+    policy: pull-push
+  artifacts:
+    expire_in: 15m
+    paths:
+      - node_modules
   only:
     - merge_requests
 
