@@ -4,7 +4,8 @@
   "description": "",
   "scripts": {
     "test": "npx hardhat test",
-    "check": "solhint -c .solhint.json contracts/**/*.sol"
+    "check": "solhint -c .solhint.json contracts/**/*.sol",
+    "prepare": "husky install"
   },
   "repository": {
     "type": "git",
@@ -23,7 +24,8 @@
     "hardhat": "^2.6.7",
     "hardhat-contract-sizer": "^2.1.1",
     "hardhat-gas-reporter": "^1.0.4",
-    "mathjs": "^10.0.0"
+    "mathjs": "^10.0.0",
+    "husky": "^7.0.0"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.3.2"
