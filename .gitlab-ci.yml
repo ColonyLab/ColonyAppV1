@@ -1,4 +1,7 @@
-image: node:14.18.1-alpine
+default:
+  image: node:14.18.1-alpine
+  tags:
+    - node
 
 stages:
   - install
