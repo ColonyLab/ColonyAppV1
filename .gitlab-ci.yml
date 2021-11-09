@@ -7,7 +7,7 @@ stages:
   - install
   - test
 
-build:
+install:
   stage: install
   script:
     - npm install -q
