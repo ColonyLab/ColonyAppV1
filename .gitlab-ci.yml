@@ -18,6 +18,7 @@ variables:
 stages:
   - setup
   - test
+  - solhint_check
 
 setup:
   stage: setup
@@ -38,5 +39,11 @@ setup:
 test:
   stage: test
   script: npm run test
+  only:
+    - merge_requests
+
+solhint_check:
+  stage: test
+  script: npm run check
   only:
     - merge_requests
