@@ -91,6 +91,14 @@ const hasEmittedEvent = async function (promise, expectedEvent, expectedParams =
     expect(eventNamePresent).to.equal(true, 'Transaction didn\'t emit "'+ expectedEvent +'" event')
 }
 
+const time = {
+    s: 1,
+    m: 60,
+    h: 3600,
+    d: 86400,
+    y: 31536000
+}
+
 module.exports = {
     tokens,
     fromWei,
@@ -102,5 +110,6 @@ module.exports = {
     keccak256,
     toUtf8Bytes,
     getEventsFromTransaction,
-    hasEmittedEvent
+    hasEmittedEvent,
+    time
 }
