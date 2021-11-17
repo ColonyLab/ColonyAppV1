@@ -8,22 +8,25 @@ import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 
 contract ColonyGovernanceToken is ERC20, ERC20Snapshot, Ownable, ERC20Permit, ERC20Votes {
-    bool minted =  false;
+    bool public minted;
 
-    constructor() ERC20("Colony Token", "CLY") ERC20Permit("Colony") {
-
+    constructor() ERC20("Colony Token", "CLY") ERC20Permit("Colony Token") {
+        minted = false;
     }
 
-    function initialMint(address publicSaleAddress, address privateSaleAddress, address vestingContractAddress)
+    function initialMint(address[] memory receivers, uint256[] memory values)
     external
     onlyOwner
     {
         require(!minted, "Tokens have already been minted!");
+        require(receivers.length == values.length, "Receivers-Values mismatch!");
 
-        _mint(publicSaleAddress, 10500000 * 10 ** decimals());       //  10,5M
-        _mint(privateSaleAddress, 7800000 * 10 ** decimals());       //   7,8M
-        _mint(vestingContractAddress, 131700000 * 10 ** decimals()); // 131,7M
         minted = true;
+
+        for (uint i = 0; i < receivers.length; i++) {
+            _mint(receivers[i], values[i]);
+        }
+
         emit ColonyTokenMinted();
     }
 

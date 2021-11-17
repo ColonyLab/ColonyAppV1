@@ -1,15 +1,15 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { setupGovernanceToken } = require("../scripts/setupContracts");
-const { toTokens, getEventsFromTransaction, hasEmittedEvent } = require("./utils/testHelpers")
+const { toTokens, hasEmittedEvent } = require("./utils/testHelpers")
 
-let colonyGovernanceToken;
-let owner, addr1, addr2, publicSaleWallet, privateSaleWallet, vestingContract;
+let colonyGovernanceToken, vestingContract;
+let owner, addr1, addr2, publicSaleWallet, privateSaleWallet, seedWallet, providingLiquidityWallet, decimals;
 
 describe("Colony Token Base", function () {
 
   before(async() => {
-    [owner, addr1, addr2, publicSaleWallet, privateSaleWallet, vestingContract] = await ethers.getSigners()
+    [owner, addr1, addr2, publicSaleWallet, privateSaleWallet, vestingContract, seedWallet, providingLiquidityWallet] = await ethers.getSigners()
     colonyGovernanceToken = await setupGovernanceToken()
   })
 
@@ -17,7 +17,7 @@ describe("Colony Token Base", function () {
     expect(await colonyGovernanceToken.name()).to.equal("Colony Token")
     expect(await colonyGovernanceToken.symbol()).to.equal("CLY")
 
-    const decimals = await colonyGovernanceToken.decimals()
+    decimals = await colonyGovernanceToken.decimals()
     const totalSupply = await colonyGovernanceToken.totalSupply()
 
     expect(decimals).to.equal(18)
@@ -25,11 +25,13 @@ describe("Colony Token Base", function () {
   })
 
   it("Governance Token initial minting", async function () {
-    const tx = colonyGovernanceToken.initialMint(publicSaleWallet.address, privateSaleWallet.address, vestingContract.address);
+    const tx = colonyGovernanceToken.initialMint(
+        [publicSaleWallet.address, privateSaleWallet.address, vestingContract.address, seedWallet.address, providingLiquidityWallet.address],
+        [toTokens('10500000', decimals), toTokens('7800000', decimals), toTokens('131700000', decimals), 0, 0]
+    );
     await hasEmittedEvent(tx, 'ColonyTokenMinted', []);
 
     const expectedSupply = '150000000';
-    const decimals = await colonyGovernanceToken.decimals()
     const publicSaleWalletBalance = toTokens('10500000', decimals)
     const privateSaleWalletBalance = toTokens('7800000', decimals)
     const vestingContractBalance = toTokens('131700000', decimals)
@@ -46,7 +48,10 @@ describe("Colony Token Base", function () {
 
   it("Prevents another token generation.", async function () {
      await expect(
-         colonyGovernanceToken.initialMint(publicSaleWallet.address, privateSaleWallet.address, vestingContract.address)
+         colonyGovernanceToken.initialMint(
+             [publicSaleWallet.address, privateSaleWallet.address, vestingContract.address, seedWallet.address, providingLiquidityWallet.address],
+             [toTokens('10500000', decimals), toTokens('7800000', decimals), toTokens('131700000', decimals), 0, 0]
+         )
      ).to.be.revertedWith('Tokens have already been minted!');
   })
 
