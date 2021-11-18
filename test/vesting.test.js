@@ -15,7 +15,7 @@ describe("Vesting contract tests", function () {
         vestingContract = await setupVestingContract(colonyGovernanceToken.address);
         await colonyGovernanceToken.initialMint(
             [mockAddress.address, vestingContract.address],
-            [toTokens('200', decimals), toTokens('200', decimals)]
+            [toTokens('200', decimals), toTokens('500', decimals)]
         );
         decimals = parseInt((await colonyGovernanceToken.decimals()).toString());
     })
@@ -90,6 +90,22 @@ describe("Vesting contract tests", function () {
         expect(newGroup.distributionAmount).to.equal(distributionAmount);
         expect(newGroup.distributionStartOffset).to.equal(distributionStartOffset);
         expect(newGroup.distributionLength).to.equal(distributionLength);
+    })
+
+    it("Prevents adding a group with distribution amount higher than contract balance", async function () {
+        const name = "Not a very nice group";
+        const distributionAmount = toTokens(400,decimals);
+        const distributionStartOffset = 1000;
+        const distributionLength = 20000;
+
+        const tx = vestingContract._setGroup(
+            name,
+            distributionAmount,
+            distributionStartOffset,
+            distributionLength
+        )
+        await expect(tx).to.be.revertedWith("Distribution amount too big!");
+
     })
 
     it("Add user (addr1) to group without offset", async function () {
@@ -274,7 +290,7 @@ describe("Vesting contract tests", function () {
         await vestingContract._startVesting(0, owner.address);
         const balanceAfter = await colonyGovernanceToken.balanceOf(owner.address);
 
-        expect(balanceAfter).to.equal(toTokens(35, decimals));
+        expect(balanceAfter).to.equal(toTokens(335, decimals));
     })
 
     it("Non-existent user has a claim = 0", async function () {

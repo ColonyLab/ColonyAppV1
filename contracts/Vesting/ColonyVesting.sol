@@ -149,6 +149,12 @@ contract ColonyVesting is Ownable, Pausable {
         require(distributionAmount > 0, "Invalid Distribution Amount!");
         require(distributionLength > 0, "Invalid Distribution Lenght!");
 
+        uint sumDistributionAmount = 0;
+        for (uint i; i < groupsConfiguration.length; i++) {
+            sumDistributionAmount += groupsConfiguration[i].distributionAmount;
+        }
+        require(distributionAmount + sumDistributionAmount <= vestingToken.balanceOf(address(this)), "Distribution amount too big!");
+
         GroupData memory groupData;
         groupData.name = groupName;
         groupData.distributionAmount = distributionAmount;
