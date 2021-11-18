@@ -2,8 +2,7 @@
  *  Automates the deployment of whole Colony Environment with default settings
  */
 
-const { setupGovernanceToken, setupVestingContract } = require("../setupContracts");
-const { toTokens } = require("../../test/utils/testHelpers");
+const { setupGovernanceToken } = require("../setupContracts");
 
 async function main() {
     const colonyGovernanceToken = await setupGovernanceToken();
@@ -11,6 +10,9 @@ async function main() {
 
     const colonyVestingContract = await setupVestingContract(colonyGovernanceToken.address);
     console.log("[ DEPLOYMENT ] Vesting Contract          : ", colonyVestingContract.address);
+
+    const colonyStakingContract = await setupStakingContract(colonyGovernanceToken);
+    console.log("[ DEPLOYMENT ] Staking Contract          : ", colonyStakingContract.address);
 }
 
 main()

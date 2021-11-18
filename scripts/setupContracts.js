@@ -3,6 +3,7 @@
  */
 
 const {ethers} = require("hardhat");
+const { toTokens } = require("../test/utils/testHelpers")
 
 const setupGovernanceToken = async function() {
     const ColonyGovernanceToken = await ethers.getContractFactory("ColonyGovernanceToken")
@@ -20,7 +21,19 @@ const setupVestingContract = async function(governanceTokenAddress) {
     return colonyVestingContractInstance
 }
 
+const setupStakingContract = async function(governanceTokenInstance) {
+    decimals = await governanceTokenInstance.decimals()
+
+    const ColonyStakingContract = await ethers.getContractFactory("ColonyStaking")
+
+    const staking = await ColonyStakingContract.deploy(governanceTokenInstance.address,toTokens(50, decimals), 20)
+    await staking.deployed()
+
+    return staking
+}
+
 module.exports = {
     setupGovernanceToken,
-    setupVestingContract
+    setupVestingContract,
+    setupStakingContract
 }
