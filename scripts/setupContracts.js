@@ -24,7 +24,7 @@ const setupVestingContract = async function(governanceTokenAddress) {
 const setupStakingContract = async function(governanceTokenInstance) {
     decimals = await governanceTokenInstance.decimals()
 
-    const ColonyStakingContract = await ethers.getContractFactory("ColonyStaking")
+    const ColonyStakingContract = await ethers.getContractFactory("Staking")
 
     const staking = await ColonyStakingContract.deploy(governanceTokenInstance.address,toTokens(50, decimals), 20)
     await staking.deployed()

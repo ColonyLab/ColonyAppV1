@@ -4,15 +4,15 @@ pragma solidity ^0.8.9;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "./TimedValuesStorage.sol";
-import "../Governance/ColonyGovernanceToken.sol";
 
 /**
- * Main Colony Staking contract, used for staking CLY tokens and manage stake requirements
+ * Main Staking contract, used for staking CLY tokens and manage stake requirements
  */
-contract ColonyStaking is Ownable, Pausable {
+contract Staking is Ownable, Pausable {
     using SafeERC20 for IERC20;
 
     // Token that is supported by this contract. Should be registered in constructor
@@ -21,10 +21,10 @@ contract ColonyStaking is Ownable, Pausable {
     // Storage for accounts Stake data
     TimedValuesStorage private stakeDeposits;
 
-    // amount of stake required by featured account, variable controlled by Colony DAO
+    // amount of stake required by featured account
     uint256 public authorizedStakeAmount;
 
-    // period in DAYS of required stake for account to be featured, variable controlled by Colony DAO
+    // period in DAYS of required stake for account to be featured
     uint16 public authorizedStakePeriod;
 
     event StakeAdded(address indexed account, uint256 value);
@@ -35,11 +35,11 @@ contract ColonyStaking is Ownable, Pausable {
 
     /**
      * @dev Constructor
-     * @param supportedToken_ The address of Colony token contract
+     * @param supportedToken_ The address of token contract
      */
     constructor(address supportedToken_, uint256 authorizedStakeAmount_, uint16 authorizedStakePeriod_) {
         require(supportedToken_ != address(0), "supported token cannot be 0x0");
-        stakedToken = ColonyGovernanceToken(supportedToken_);
+        stakedToken = IERC20Metadata(supportedToken_);
         authorizedStakeAmount = authorizedStakeAmount_;
         authorizedStakePeriod = authorizedStakePeriod_;
 
@@ -122,7 +122,7 @@ contract ColonyStaking is Ownable, Pausable {
     }
 
     /**
-     * @dev Stake colony tokens inside stakeDeposit
+     * @dev Stake tokens inside stakeDeposit
      * @return a boolean value indicating whether the operation succeeded
      *
      * Emits a {StakeAdded} event
@@ -132,7 +132,7 @@ contract ColonyStaking is Ownable, Pausable {
     }
 
     /**
-     * @dev StakeFor sends colony tokens to another address stake
+     * @dev StakeFor sends tokens to another address stake
      * @return a boolean value indicating whether the operation succeeded
      *
      * Emits a {StakeAdded} event
@@ -140,7 +140,7 @@ contract ColonyStaking is Ownable, Pausable {
     function stakeFor(address receiver, uint256 amount) public whenNotPaused returns (bool) {
         require(amount > 0, "Staking: cannot stake 0");
 
-        // will transfer Colony tokens to this contract (require approve)
+        // will transfer tokens to this contract (require approve)
         IERC20(stakedToken).safeTransferFrom(msg.sender, address(this), amount);
 
         stakeDeposits.pushValue(receiver, amount);
@@ -165,7 +165,7 @@ contract ColonyStaking is Ownable, Pausable {
 
         _unstake(msg.sender, amountToUnstake);
 
-        // will transfer Colony tokens to the caller
+        // will transfer tokens to the caller
         IERC20(stakedToken).safeTransfer(msg.sender, amountToUnstake);
 
         emit StakeRemoved(msg.sender, amountToUnstake);
