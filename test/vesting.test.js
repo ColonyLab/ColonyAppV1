@@ -7,7 +7,7 @@ let colonyGovernanceToken, vestingContract;
 let owner, mockAddress, addr1, addr2, addr3, addr4;
 let decimals;
 
-describe("Vesting contract tests", function () {
+describe("Vesting Contract - vesting process tests", function () {
 
     before(async() => {
         [owner, mockAddress, addr1, addr2, addr3, addr4] = await ethers.getSigners()
@@ -429,4 +429,35 @@ describe("Vesting contract tests", function () {
         expect(balance).to.equal(toTokens(100,decimals));
     })
 
+})
+
+describe("Additional Vesting Contract tests", function () {
+
+    before(async () => {
+        [owner, mockAddress, addr1, addr2, addr3, addr4] = await ethers.getSigners()
+        colonyGovernanceToken = await setupGovernanceToken();
+        vestingContract = await setupVestingContract(colonyGovernanceToken.address);
+        await colonyGovernanceToken.initialMint(
+            [mockAddress.address, vestingContract.address],
+            [toTokens('200', decimals), toTokens('500', decimals)]
+        );
+        decimals = parseInt((await colonyGovernanceToken.decimals()).toString());
+    })
+
+    it("Check if all amount of tokens is returned when no vesting is configured", async function () {
+        const name = "Test group";
+        const distributionAmount = toTokens(150,decimals);
+        const distributionStartOffset = 0;
+        const distributionLength = 10000;
+
+        await vestingContract._setGroup(
+            name,
+            distributionAmount,
+            distributionStartOffset,
+            distributionLength
+        )
+
+        await vestingContract._startVesting(0, addr4.address);
+        expect(await colonyGovernanceToken.balanceOf(addr4.address)).to.equal(toTokens('500', decimals));
+    })
 })
