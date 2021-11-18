@@ -168,7 +168,7 @@ contract ColonyVesting is Ownable, Pausable {
      *  @param groupId    - the ID of the group which the user should belong to
      *  @param vestAmount - the amount of tokens to be distributed
      */
-    function _setUser(address account, uint groupId, uint vestAmount) external onlyOwner beforeVestingStarted {
+    function _setUser(address account, uint groupId, uint vestAmount) public onlyOwner beforeVestingStarted {
         require(account != address(0), "Wrong wallet address specified!");
         require(groupId < groupsConfiguration.length, "Invalid groupId!");
         require(
@@ -189,6 +189,19 @@ contract ColonyVesting is Ownable, Pausable {
         groupsConfiguration[groupId].vestedAmount += vestAmount;
 
         emit UserDataSet(account, groupId, vestAmount);
+    }
+
+    /**
+     *  @notice provides a convenient interface for adding users in bulk. See _setUser() for additional info.
+     *  @param accounts    - array of accounts
+     *  @param groupIds    - array of groupIds
+     *  @param vestAmounts - array of vesting amounts
+     */
+    function _setUserBulk(address[] memory accounts, uint[] memory groupIds, uint[] memory vestAmounts) external onlyOwner beforeVestingStarted {
+        require(accounts.length == groupIds.length && groupIds.length == vestAmounts.length, "Invalid array lengths!");
+        for (uint i = 0; i < accounts.length; i++) {
+            _setUser(accounts[i], groupIds[i], vestAmounts[i]);
+        }
     }
 
     /**
