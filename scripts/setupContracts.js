@@ -26,7 +26,8 @@ const setupStakingContract = async function(governanceTokenInstance) {
 
     const ColonyStakingContract = await ethers.getContractFactory("Staking")
 
-    const staking = await ColonyStakingContract.deploy(governanceTokenInstance.address,toTokens(50, decimals), 20)
+    const twentyDays = 20 * 86400
+    const staking = await ColonyStakingContract.deploy(governanceTokenInstance.address,toTokens(50, decimals), twentyDays)
     await staking.deployed()
 
     return staking

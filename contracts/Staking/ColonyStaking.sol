@@ -24,20 +24,20 @@ contract Staking is Ownable, Pausable {
     // amount of stake required by featured account
     uint256 public authorizedStakeAmount;
 
-    // period in DAYS of required stake for account to be featured
-    uint16 public authorizedStakePeriod;
+    // period in seconds of required stake for account to be featured
+    uint256 public authorizedStakePeriod;
 
     event StakeAdded(address indexed account, uint256 value);
     event StakeRemoved(address indexed account, uint256 value);
 
     event AuthStakeAmountChanged(uint256 newStakeValue);
-    event AuthStakePeriodChanged(uint16 newDays);
+    event AuthStakePeriodChanged(uint256 newPeriod);
 
     /**
      * @dev Constructor
      * @param supportedToken_ The address of token contract
      */
-    constructor(address supportedToken_, uint256 authorizedStakeAmount_, uint16 authorizedStakePeriod_) {
+    constructor(address supportedToken_, uint256 authorizedStakeAmount_, uint256 authorizedStakePeriod_) {
         require(supportedToken_ != address(0), "supported token cannot be 0x0");
         stakedToken = IERC20Metadata(supportedToken_);
         authorizedStakeAmount = authorizedStakeAmount_;
@@ -68,9 +68,8 @@ contract Staking is Ownable, Pausable {
      * @return amount of account total authorized stake balance
      */
     function authStakeBalanceOf(address account) public view returns (uint256) {
-        // 86400 - number of seconds in a day
         // solhint-disable-next-line not-rely-on-time
-        uint256 maxTimestamp = block.timestamp - (86400 * authorizedStakePeriod);
+        uint256 maxTimestamp = block.timestamp - authorizedStakePeriod;
         return stakeDeposits.valueStoredLongEnough(account, maxTimestamp);
     }
 
@@ -79,9 +78,8 @@ contract Staking is Ownable, Pausable {
      * @return boolean
      */
     function isAccountAuthorized(address account) public view returns (bool) {
-        // 86400 - number of seconds in a day
         // solhint-disable-next-line not-rely-on-time
-        uint256 maxTimestamp = block.timestamp - (86400 * authorizedStakePeriod);
+        uint256 maxTimestamp = block.timestamp - authorizedStakePeriod;
         return stakeDeposits.isStoredLongEnough(account, authorizedStakeAmount, maxTimestamp);
     }
 
@@ -112,11 +110,11 @@ contract Staking is Ownable, Pausable {
 
     /**
      * @dev setAuthorizedStakePeriod - allows to set new authorizedStakePeriod value
-     * @param period_ - new period in days
+     * @param period_ - new period in seconds
      *
      * Emits a {AuthStakePeriodChanged} event
      */
-    function setAuthorizedStakePeriod(uint16 period_) external onlyOwner {
+    function setAuthorizedStakePeriod(uint256 period_) external onlyOwner {
         authorizedStakePeriod = period_;
         emit AuthStakePeriodChanged(period_);
     }

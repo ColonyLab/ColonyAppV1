@@ -7,6 +7,7 @@ const {exp} = require("mathjs")
 let colonyGovernanceToken
 let colonyStaking
 let owner, addr1, addr2, publicSaleWallet, privateSaleWallet, vestingContract
+let defaultAuthPeriod
 
 const stake = async (who, stakeAmount) => {
   const tokensAmount = toTokens(stakeAmount)
@@ -50,8 +51,8 @@ describe("Colony Staking", function () {
     // transfer initial token amount to test address
     await colonyGovernanceToken.connect(publicSaleWallet).transfer(addr1.address, toTokens(initAmount))
 
-
     colonyStaking = await setupStakingContract(colonyGovernanceToken)
+    defaultAuthPeriod = parseInt((await colonyStaking.authorizedStakePeriod()).toString())
   })
 
   it("Stake 0", async function () {
@@ -246,24 +247,22 @@ describe("Colony Staking", function () {
     // auth stake 50CLY
     expect(await colonyStaking.authorizedStakeAmount()).to.be.equal(toTokens(minStake))
 
-    // auth period 20 days
-    expect(await colonyStaking.authorizedStakePeriod()).to.be.equal(20)
+    // auth period 20 days * 86400 seconds in a day
+    expect(await colonyStaking.authorizedStakePeriod()).to.be.equal(20 * 86400)
   })
 
   it("Authorized Stake", async function () {
-    const daysPeriod = await colonyStaking.authorizedStakePeriod() // default
-
     await stake(addr1, minStake)
-    expect(await colonyStaking.authStakeBalanceOf(addr1.address)).to.be.equal(0) // 0 - needs to wait daysPeriod
+    expect(await colonyStaking.authStakeBalanceOf(addr1.address)).to.be.equal(0) // 0 - needs to wait authPeriod
 
-    await increaseTime(daysPeriod * 24 * 3600)
+    await increaseTime(defaultAuthPeriod)
     expect(await colonyStaking.authStakeBalanceOf(addr1.address)).to.be.equal(toTokens(minStake))
 
     await stake(addr1, minStake)
     await stake(addr1, minStake)
     expect(await colonyStaking.authStakeBalanceOf(addr1.address)).to.be.equal(toTokens(minStake))
 
-    await increaseTime(daysPeriod * 24 * 3600)
+    await increaseTime(defaultAuthPeriod)
     expect(await colonyStaking.authStakeBalanceOf(addr1.address)).to.be.equal(toTokens(3*minStake))
   })
 
@@ -287,16 +286,14 @@ describe("Colony Staking", function () {
     await stake(addr1, minStake)
     expect(await colonyStaking.isAccountAuthorized(addr1.address)).to.be.equal(false)
 
-    const daysPeriod = await colonyStaking.authorizedStakePeriod()
-    await increaseTime(daysPeriod * 24 * 3600)
+    await increaseTime(defaultAuthPeriod)
     expect(await colonyStaking.isAccountAuthorized(addr1.address)).to.be.equal(true)
   })
 
   it("Featured Account - LIFO", async function () {
     await stake(addr1, minStake)
 
-    const daysPeriod = await colonyStaking.authorizedStakePeriod()
-    await increaseTime(daysPeriod * 24 * 3600)
+    await increaseTime(defaultAuthPeriod)
     await stake(addr1, 3*minStake) // new stake
 
     await unstake(addr1, minStake) // should decrease new stake and still be featured
@@ -306,22 +303,22 @@ describe("Colony Staking", function () {
 
   it("Featured Account - Change Auth Values", async function () {
     await stake(addr1, minStake)
-    const daysPeriod = await colonyStaking.authorizedStakePeriod()
-    await increaseTime(daysPeriod * 24 * 3600)
+    await increaseTime(defaultAuthPeriod)
     expect(await colonyStaking.isAccountAuthorized(addr1.address)).to.be.equal(true)
 
     await colonyStaking.connect(owner).setAuthorizedStakeAmount(toTokens(60))
     expect(await colonyStaking.isAccountAuthorized(addr1.address)).to.be.equal(false) // missing stake
 
     await stake(addr1, 10) // stake difference
-    await increaseTime(daysPeriod * 24 * 3600)
+    await increaseTime(defaultAuthPeriod)
 
     expect(await colonyStaking.isAccountAuthorized(addr1.address)).to.be.equal(true)
 
-    await colonyStaking.connect(owner).setAuthorizedStakePeriod(daysPeriod + 100)
+    const tenDays = 100 * 86400
+    await colonyStaking.connect(owner).setAuthorizedStakePeriod(defaultAuthPeriod + tenDays)
     expect(await colonyStaking.isAccountAuthorized(addr1.address)).to.be.equal(false)
 
-    await increaseTime(100 * 24 * 3600)
+    await increaseTime(defaultAuthPeriod + tenDays)
     expect(await colonyStaking.isAccountAuthorized(addr1.address)).to.be.equal(true)
   })
 
