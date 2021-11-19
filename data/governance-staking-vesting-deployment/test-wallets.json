@@ -1,0 +1,277 @@
+[
+    {
+        "address": "0xE82943042b9f548A9f1740b41E0DF554F2B7Dd1a",
+        "group": "direct_mint",
+        "amount": "500000000"
+    },
+    {
+        "address": "0xdfbc37a1FCB36767A1F1ba14d34074EaFdEF68f0",
+        "group": "direct_mint",
+        "amount": "5000000"
+    },
+    {
+        "address": "0xFc10106aA17dDd3C19C96f1f81D48A651f2BBaAF",
+        "group": "private_sale",
+        "amount": "1000"
+    },
+    {
+        "address": "0x3303aFf639B1EfB9C94D82AC1f90FE45cff7cab8",
+        "group": "seed",
+        "amount": "1000"
+    },
+    {
+        "address": "0x1Cd795b825FfEDe56a447FafA5C1Cd7D2fcd4256",
+        "group": "advisor",
+        "amount": "1000"
+    },
+    {
+        "address": "0x055592857604dA481926CA0263215CDE2F4F8986",
+        "group": "team",
+        "amount": "1000"
+    },
+    {
+        "address": "0x9Ea1577C76E67b6dc7105305b2a416D05FDc0Dfe",
+        "group": "community_incentive",
+        "amount": "1000"
+    },
+    {
+        "address": "0x529f45605b209bc7dBb7a25883A728340C4c1BF6",
+        "group": "private_sale",
+        "amount": "1000"
+    },
+    {
+        "address": "0x2FBed34572B393D3898414cCF12997256749f8fB",
+        "group": "seed",
+        "amount": "1000"
+    },
+    {
+        "address": "0x52Bc16E5040594ecA918C33f11367321f7cAdD2A",
+        "group": "advisor",
+        "amount": "1000"
+    },
+    {
+        "address": "0x58aa49ab482e39b7698f2dBafF8A9D2Ce46e7BD2",
+        "group": "direct_mint",
+        "amount": "5000000"
+    },
+    {
+        "address": "0x936D983c3F12367f61c534AFEb888589cd9BD959",
+        "group": "direct_mint",
+        "amount": "5000000"
+    },
+    {
+        "address": "0x6F5Af51873B1Cfa80865d349a16C33F65677f092",
+        "group": "private_sale",
+        "amount": "1000"
+    },
+    {
+        "address": "0x8b4643b302a7873f202FB57f7bA6d04B3a99CE1E",
+        "group": "seed",
+        "amount": "1000"
+    },
+    {
+        "address": "0x8480815B5ee2CF1c22cF289fFEE7FbeC1a8A8969",
+        "group": "advisor",
+        "amount": "1000"
+    },
+    {
+        "address": "0x1e0E851C58a8DB07338fA3411F812a93331Ea39B",
+        "group": "team",
+        "amount": "1000"
+    },
+    {
+        "address": "0xA4E535D41C42d30fbF6bf05E1350A3Aa4aBc20Bb",
+        "group": "community_incentive",
+        "amount": "1000"
+    },
+    {
+        "address": "0x22e32f3Fd600258E52aAFd4c31ed381834Cf297B",
+        "group": "private_sale",
+        "amount": "1000"
+    },
+    {
+        "address": "0xC833a277D22bb6251152F8798F12645936BeF7a5",
+        "group": "seed",
+        "amount": "1000"
+    },
+    {
+        "address": "0x5B7C3806663bF2236ADC21ECB3689aAcAE41a86a",
+        "group": "advisor",
+        "amount": "1000"
+    },
+    {
+        "address": "0xAa31897ea705295Ae2e880f54B62f108D4fa4e4A",
+        "group": "direct_mint",
+        "amount": "5000000"
+    },
+    {
+        "address": "0x33E0c2438e80B6e889796516F68020c696C672E0",
+        "group": "private_sale",
+        "amount": "1000"
+    },
+    {
+        "address": "0x8512cf1DBeD43F7f9290E90830BDf6b602797e4E",
+        "group": "seed",
+        "amount": "1000"
+    },
+    {
+        "address": "0x00b7C421CBb89CAC680991292466E9c85D315f5c",
+        "group": "advisor",
+        "amount": "1000"
+    },
+    {
+        "address": "0x1C8D587e8270882C8823064078F142ca1650aa87",
+        "group": "team",
+        "amount": "1000"
+    },
+    {
+        "address": "0x6c661Be100Ea0FcD50B5807d498106CA3086b855",
+        "group": "community_incentive",
+        "amount": "1000"
+    },
+    {
+        "address": "0x4A64E5163e7A201Bf3CfC016C0907DA349b19d33",
+        "group": "private_sale",
+        "amount": "1000"
+    },
+    {
+        "address": "0xDD875896beD7EBd404A2367418a42Fa0B465Ce8b",
+        "group": "seed",
+        "amount": "1000"
+    },
+    {
+        "address": "0xb1406cD5426756E1F69aa57783466F35f4062145",
+        "group": "advisor",
+        "amount": "1000"
+    },
+    {
+        "address": "0x085cE2bF391016c0981DB049E96D2aAF2dF26365",
+        "group": "direct_mint",
+        "amount": "5000000"
+    },
+    {
+        "address": "0x4E623e2963327Adb5f37bB078beC57Cf4CF0727D",
+        "group": "direct_mint",
+        "amount": "5000000"
+    },
+    {
+        "address": "0x2B4E5d75721d0918538522BF98E16D70C268ed5c",
+        "group": "private_sale",
+        "amount": "1000"
+    },
+    {
+        "address": "0xaA0a3B374087cf473d2882a6CFCf8cA38cf920e8",
+        "group": "seed",
+        "amount": "1000"
+    },
+    {
+        "address": "0x7eb4DCaAAa21d5bD158DD8a2ec3F9Cd3c3fB5431",
+        "group": "advisor",
+        "amount": "1000"
+    },
+    {
+        "address": "0x4A60Fd60E5F55aB03431d268b26B2EEA3291f590",
+        "group": "team",
+        "amount": "1000"
+    },
+    {
+        "address": "0xA394318F79601D8d372ba848050622f888aC6d27",
+        "group": "community_incentive",
+        "amount": "1000"
+    },
+    {
+        "address": "0x5a77457d72a6efF26E73ac47f4902edAaA6Ae5fd",
+        "group": "private_sale",
+        "amount": "1000"
+    },
+    {
+        "address": "0x92248Ead36Dd0B0cbAac3FCb94fCf9841deDE3cd",
+        "group": "seed",
+        "amount": "1000"
+    },
+    {
+        "address": "0x682e5F7486FBC028D68B4FeDcf84177CFE01D559",
+        "group": "advisor",
+        "amount": "1000"
+    },
+    {
+        "address": "0x924Da5E537dc5cD1eAdE80Ca6BDE38020A6Af87c",
+        "group": "direct_mint",
+        "amount": "5000000"
+    },
+    {
+        "address": "0x16f2c6a7C30F89c5A0C5e314eEABEb057505e3e6",
+        "group": "private_sale",
+        "amount": "1000"
+    },
+    {
+        "address": "0xeC0C3E2C80A6FE605Be536d754485eD41b5c562B",
+        "group": "seed",
+        "amount": "1000"
+    },
+    {
+        "address": "0xA23D91747FD378CBcA370006Dbac830c858E2bd7",
+        "group": "advisor",
+        "amount": "1000"
+    },
+    {
+        "address": "0x98389F4436013462809330349CD8850d35158948",
+        "group": "team",
+        "amount": "1000"
+    },
+    {
+        "address": "0x65f77175796417B525c4ba443B02542A566B9FAe",
+        "group": "community_incentive",
+        "amount": "1000"
+    },
+    {
+        "address": "0x6973f5C1fD20d66B243600872852739526f4e3B3",
+        "group": "private_sale",
+        "amount": "1000"
+    },
+    {
+        "address": "0x3b24e7CE69BcC24B2a906308cE5EA02B5774C4e0",
+        "group": "seed",
+        "amount": "1000"
+    },
+    {
+        "address": "0xb29D5E2fa00e86fb78a80ee712B84d8860BBf2d2",
+        "group": "advisor",
+        "amount": "1000"
+    },
+    {
+        "address": "0x940eF59635f9c603FD3a335D19F4aeD55D4DeFb4",
+        "group": "direct_mint",
+        "amount": "8333333.33"
+    },
+    {
+        "address": "0x039286a8286f38455c156EaF5851CEf072c94Aaf",
+        "group": "direct_mint",
+        "amount": "14880952.38"
+    },
+    {
+        "address": "0x7742A245d91c0e06EcA874FD490243F718547046",
+        "group": "private_sale",
+        "amount": "87500000"
+    },
+    {
+        "address": "0x9c3c18229b8FF259103c617F114CecC50D879CD4",
+        "group": "seed",
+        "amount": "10583333.33"
+    },
+    {
+        "address": "0xD24bD523650346f8dCe4Ae9624B8f319f63903C8",
+        "group": "community_incentive",
+        "amount": "10416666.67"
+    },
+    {
+        "address": "0x385478c5e0BdD05B98643fc3eF31aDBeA850544A",
+        "group": "advisor",
+        "amount": "4464285.71"
+    },
+    {
+        "address": "0x6469EceF372ae0d8dbEf1000C4cD5C9199277Eac",
+        "group": "team",
+        "amount": "14880952.38"
+    }
+]

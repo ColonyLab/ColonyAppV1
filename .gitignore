@@ -1,4 +1,6 @@
+.DS_Store
 .idea
+.vscode
 .env
 node_modules
 build/*

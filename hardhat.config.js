@@ -28,6 +28,26 @@ module.exports = {
       accounts: {
         mnemonic: process.env.WALLET_MNEMONIC
       }
+    },
+    local: {
+      url: process.env.LOCAL_RPC_URL,
+      accounts: {
+        mnemonic: process.env.WALLET_MNEMONIC
+      }
+    },
+    fuji: {
+      url: process.env.FUJI_TESTNET_RPC_URL,
+      gasPrice: 225000000000,
+      chainId: 43113,
+      accounts: {
+        mnemonic: process.env.WALLET_MNEMONIC
+      }
+    },
+    mainnet: {
+      url: process.env.AVAX_MAINNET_RPC_URL,
+      gasPrice: 225000000000,
+      chainId: 43114,
+      accounts: []
     }
   },
 

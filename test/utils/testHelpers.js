@@ -13,16 +13,11 @@ const fromWei = (x) => {
 }
 
 const toTokens = (value, decimals = 18) => {
-    return mathjs.format(
-        mathjs.multiply(value, mathjs.pow(10, decimals)),
-        {
-            notation: 'fixed'
-        }
-    )
+    return ethers.utils.parseUnits(value.toString(), decimals).toString()
 }
 
 const fromTokens = (value, decimals = 18, round = false) => {
-    let result = mathjs.divide(value.toString(), mathjs.pow(10, decimals))
+    let result = ethers.utils.formatUnits(value.toString(), decimals)
     if(round){
         result = mathjs.round(result, 2)
     }

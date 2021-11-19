@@ -51,7 +51,7 @@ describe("Colony Staking", function () {
     // transfer initial token amount to test address
     await colonyGovernanceToken.connect(publicSaleWallet).transfer(addr1.address, toTokens(initAmount))
 
-    colonyStaking = await setupStakingContract(colonyGovernanceToken)
+    colonyStaking = await setupStakingContract(colonyGovernanceToken.address, toTokens('50', decimals), 20*24*60*60)
     defaultAuthPeriod = parseInt((await colonyStaking.authorizedStakePeriod()).toString())
   })
 

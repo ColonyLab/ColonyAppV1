@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
- *  @title Colony Vesting contract
+ *  @title Vesting contract
  ***********************************
  *  @notice Distributes tokens according to specified distribution rules.
  *
@@ -18,7 +18,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
  *
  *  The vesting process can be paused and unpaused any time.
  */
-contract ColonyVesting is Ownable, Pausable {
+contract Vesting is Ownable, Pausable {
 
     using SafeERC20 for IERC20;
 
