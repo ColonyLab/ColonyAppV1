@@ -3,7 +3,6 @@
  */
 
 const {ethers} = require("hardhat");
-const { toTokens } = require("../test/utils/testHelpers")
 
 const setupGovernanceToken = async function() {
     const ColonyGovernanceToken = await ethers.getContractFactory("ColonyGovernanceToken")
@@ -13,28 +12,33 @@ const setupGovernanceToken = async function() {
     return colonyGovernanceTokenInstance
 }
 
-const setupVestingContract = async function(governanceTokenAddress) {
-    const ColonyVestingContract = await ethers.getContractFactory("ColonyVesting")
-    const colonyVestingContractInstance = await ColonyVestingContract.deploy(governanceTokenAddress)
-    await colonyVestingContractInstance.deployed()
+const setupTestGovernanceToken = async function() {
+    const TestGovernanceToken = await ethers.getContractFactory("TestGovernanceToken")
+    const testGovernanceTokenInstance = await TestGovernanceToken.deploy()
+    await testGovernanceTokenInstance.deployed()
 
-    return colonyVestingContractInstance
+    return testGovernanceTokenInstance
 }
 
-const setupStakingContract = async function(governanceTokenInstance) {
-    decimals = await governanceTokenInstance.decimals()
+const setupVestingContract = async function(governanceTokenAddress) {
+    const VestingContract = await ethers.getContractFactory("Vesting")
+    const vestingContractInstance = await VestingContract.deploy(governanceTokenAddress)
+    await vestingContractInstance.deployed()
 
+    return vestingContractInstance
+}
+
+const setupStakingContract = async function(governanceTokenAddress, minTreshold, minPeriod) {
     const ColonyStakingContract = await ethers.getContractFactory("Staking")
-
-    const twentyDays = 20 * 86400
-    const staking = await ColonyStakingContract.deploy(governanceTokenInstance.address,toTokens(50, decimals), twentyDays)
+    const staking = await ColonyStakingContract.deploy(governanceTokenAddress, minTreshold, minPeriod)
     await staking.deployed()
 
     return staking
-}
+} 
 
 module.exports = {
     setupGovernanceToken,
+    setupTestGovernanceToken,
     setupVestingContract,
     setupStakingContract
 }

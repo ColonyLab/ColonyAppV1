@@ -1,0 +1,37 @@
+[
+    {
+        "name": "private_sale",
+        "total_amount": "87510000",
+        "offset": "172800",
+        "period": "43200",
+        "initial_unlock": "10"
+    },
+    {
+        "name": "seed",
+        "total_amount": "10593333.33",
+        "offset": "187200",
+        "period": "21600",
+        "initial_unlock": "0"
+    },
+    {
+        "name": "advisor",
+        "total_amount": "4474285.71",
+        "offset": "190800",
+        "period": "28800",
+        "initial_unlock": "0"
+    },
+    {
+        "name": "team",
+        "total_amount": "14885952.38",
+        "offset": "0",
+        "period": "259200",
+        "initial_unlock": "0"
+    },
+    {
+        "name": "community_incentive",
+        "total_amount": "10421666.67",
+        "offset": "7200",
+        "period": "21600",
+        "initial_unlock": "10"
+    }
+]
