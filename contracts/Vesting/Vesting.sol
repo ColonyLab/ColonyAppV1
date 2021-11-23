@@ -28,7 +28,6 @@ contract Vesting is Ownable, Pausable {
      **************************************/
 
     bool public vestingStarted;        // true when the vesting procedure has started
-    bool public vestingCompleted;      // true when last funds are reclaimed and contract no longer functional
     uint public vestingStartTimestamp; // the starting timestamp of vesting schedule
     bool public vestingClosed;         // true when the admin reclaims the remaining tokens and ends vesting
     uint public vestingCloseOffset;    // offset in seconds when the admin is allowed to close vesting after last group vesting ends
