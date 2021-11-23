@@ -30,6 +30,8 @@ contract Vesting is Ownable, Pausable {
     bool public vestingStarted;        // true when the vesting procedure has started
     bool public vestingCompleted;      // true when last funds are reclaimed and contract no longer functional
     uint public vestingStartTimestamp; // the starting timestamp of vesting schedule
+    bool public vestingClosed;         // true when the admin reclaims the remaining tokens and ends vesting
+    uint public vestingCloseOffset;    // offset in seconds when the admin is allowed to close vesting after last group vesting ends
     IERC20 public vestingToken;        // the address of an ERC20 token used for vesting
 
     // holds user groups configuration and data
@@ -49,10 +51,11 @@ contract Vesting is Ownable, Pausable {
         uint vestedAmount;               // The actual number of tokens currently assigned for distribution
         uint distributionStartOffset;    // The offset of distribution start from vesting start timestamp
         uint distributionLength;         // The total length in ms of distribution.
-        uint initialRelease;        // The percentage mantissa of the tokens to be distributed when vesting begins
+        uint initialRelease;             // The mantissa of the tokens to be distributed when vesting begins
     }
 
     event VestingStarted();
+    event VestingClosed();
     event UserDataSet(address user, uint groupId, uint vestAmount);
     event GroupDataSet(
         uint groupId,
@@ -69,11 +72,14 @@ contract Vesting is Ownable, Pausable {
 
     /**
      *  @param vestingTokenAddress - the address of the token used for distribution
+     *  @param vestingClose        - offset in seconds when the contract can be closed after all groups vesting ends
      */
-    constructor(address vestingTokenAddress) {
+    constructor(address vestingTokenAddress, uint vestingClose) {
         require(vestingTokenAddress != address(0), "Vesting token address invalid!");
         vestingToken = IERC20(vestingTokenAddress);
         vestingStarted = false;
+        vestingClosed = false;
+        vestingCloseOffset = vestingClose;
     }
 
 
@@ -88,7 +94,7 @@ contract Vesting is Ownable, Pausable {
      *  @notice transfers the specified amount of tokens to the claimer. Reverts when the amount exceeds available.
      *  @param amount - the amount of tokens to be claimed
      */
-    function claim(uint amount) external afterVestingStarted whenNotPaused {
+    function claim(uint amount) external afterVestingStarted beforeVestingClosed whenNotPaused {
         require(checkClaim(msg.sender) >= amount, "Claim amount too high!");
 
         userConfiguration[msg.sender].withdrawnAmount = userConfiguration[msg.sender].withdrawnAmount + amount;
@@ -254,7 +260,6 @@ contract Vesting is Ownable, Pausable {
             vestingToken.transfer(returnWallet, difference);
         }
 
-
         emit VestingStarted();
     }
 
@@ -272,6 +277,38 @@ contract Vesting is Ownable, Pausable {
         super._unpause();
     }
 
+    /**
+     *  @notice checks if a defined time has passed since ending of all groups vesting and closes the vesting
+     *  @param receiver - the address to which the contract balance is sent after vesting close
+     */
+    function _closeVesting(address receiver) external onlyOwner afterVestingStarted beforeVestingClosed {
+        uint vestingEndTimestamp;
+        for (uint i; i < groupsConfiguration.length; i++) {
+            uint closeTimestamp =
+                vestingStartTimestamp
+                + groupsConfiguration[i].distributionStartOffset
+                + groupsConfiguration[i].distributionLength
+                + vestingCloseOffset;
+            if (closeTimestamp > vestingEndTimestamp) {
+                vestingEndTimestamp = closeTimestamp;
+            }
+        }
+        require(vestingEndTimestamp < block.timestamp, "Cannot end vesting!");
+        vestingClosed = true;
+        emit VestingClosed();
+
+        _reclaim(receiver);
+    }
+
+    /**
+     *  @notice reclaims the unclaimed token balance from this contract to admin address
+     *  Executable only when vesting is closed.
+     *  @param receiver - the address to which the contract balance is sent
+     */
+    function _reclaim(address receiver) public onlyOwner afterVestingClosed {
+        vestingToken.transfer(receiver, vestingToken.balanceOf(address(this)));
+    }
+
 
 
 
@@ -285,6 +322,14 @@ contract Vesting is Ownable, Pausable {
     }
     modifier beforeVestingStarted {
         require(!vestingStarted, "Vesting has already started!");
+        _;
+    }
+    modifier beforeVestingClosed {
+        require(!vestingClosed, "Vesting has been closed!");
+        _;
+    }
+    modifier afterVestingClosed {
+        require(vestingClosed, "Vesting has not been closed!");
         _;
     }
 }
