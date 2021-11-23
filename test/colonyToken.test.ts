@@ -1,19 +1,24 @@
-const { expect } = require("chai");
-const { ethers } = require("hardhat");
-const { setupGovernanceToken } = require("../scripts/setupContracts");
-const { toTokens, hasEmittedEvent } = require("./utils/testHelpers")
+import { ethers } from "hardhat";
+import { Contract } from "@ethersproject/contracts";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { expect } from "chai";
+import { setupGovernanceToken } from "../scripts/setupContracts"
+import { hasEmittedEvent, toTokens } from "./utils/testHelpers";
 
-let colonyGovernanceToken, vestingContract;
-let owner, addr1, addr2, publicSaleWallet, privateSaleWallet, seedWallet, providingLiquidityWallet, decimals;
 
-describe("Colony Token Base", function () {
+let colonyGovernanceToken: Contract;
+let owner: SignerWithAddress, addr1: SignerWithAddress, addr2: SignerWithAddress, publicSaleWallet: SignerWithAddress, privateSaleWallet: SignerWithAddress, 
+  seedWallet: SignerWithAddress, providingLiquidityWallet: SignerWithAddress, vestingContract: SignerWithAddress;
+let decimals: number;
 
-  before(async() => {
+describe("Colony Token Base", (): void => {
+
+  before(async(): Promise<void> => {
     [owner, addr1, addr2, publicSaleWallet, privateSaleWallet, vestingContract, seedWallet, providingLiquidityWallet] = await ethers.getSigners()
     colonyGovernanceToken = await setupGovernanceToken()
   })
 
-  it("Governance Token basic properties", async function () {
+  it("Governance Token basic properties", async(): Promise<void> => {
     expect(await colonyGovernanceToken.name()).to.equal("Colony Token")
     expect(await colonyGovernanceToken.symbol()).to.equal("CLY")
 
@@ -24,7 +29,7 @@ describe("Colony Token Base", function () {
     expect(totalSupply.toString()).to.equal('0')
   })
 
-  it("Governance Token initial minting", async function () {
+  it("Governance Token initial minting", async(): Promise<void> => {
     const tx = colonyGovernanceToken.initialMint(
         [publicSaleWallet.address, privateSaleWallet.address, vestingContract.address, seedWallet.address, providingLiquidityWallet.address],
         [toTokens('10500000', decimals), toTokens('7800000', decimals), toTokens('131700000', decimals), 0, 0]
@@ -46,7 +51,7 @@ describe("Colony Token Base", function () {
     expect(totalSupply.toString()).to.equal(expectedSupplyStr)
   })
 
-  it("Prevents another token generation.", async function () {
+  it("Prevents another token generation.", async(): Promise<void> => {
      await expect(
          colonyGovernanceToken.initialMint(
              [publicSaleWallet.address, privateSaleWallet.address, vestingContract.address, seedWallet.address, providingLiquidityWallet.address],

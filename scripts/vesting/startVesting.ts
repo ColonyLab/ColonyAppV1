@@ -1,9 +1,11 @@
-const vestingContractAddress = '0xE10EC8d4dBaF84847301351f31FdEf9c37E401aa'
-const returnWalletAddress    = '0x085cE2bF391016c0981DB049E96D2aAF2dF26365'
+import { ethers } from "hardhat";
+
+const vestingContractAddress = ''
+const returnWalletAddress    = ''
 
 async function main() {
     const Vesting = await ethers.getContractFactory("Vesting")
-    const vesting = await Vesting.attach(vestingContractAddress)
+    const vesting = Vesting.attach(vestingContractAddress)
 
     await vesting._startVesting(0, returnWalletAddress)
     console.log("Done")

@@ -1,8 +1,8 @@
-const { bignumber } = require("mathjs")
+import { bignumber } from "mathjs"
 
 const data = require("../../data/governance-staking-vesting-deployment/test-wallets.json")      // <---- define here file with data to check
 
-async function main() {
+async function main(): Promise<void> {
     const groupsTotal = []
     let total = bignumber(0)
 
