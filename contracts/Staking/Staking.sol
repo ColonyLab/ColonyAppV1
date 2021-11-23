@@ -21,6 +21,9 @@ contract Staking is Ownable, Pausable {
     // Storage for accounts Stake data
     TimedValuesStorage private stakeDeposits;
 
+    // holds precalculated TimedValuesStorage depositSums
+    mapping(address => uint256) private depositSums;
+
     // amount of stake required by featured account
     uint256 public authorizedStakeAmount;
 
@@ -44,6 +47,7 @@ contract Staking is Ownable, Pausable {
         authorizedStakePeriod = authorizedStakePeriod_;
 
         stakeDeposits = new TimedValuesStorage();
+        stakeDeposits.setMaxDepositArrayLength(100);
     }
 
     /**
@@ -55,19 +59,29 @@ contract Staking is Ownable, Pausable {
     }
 
     /**
-     * @dev stakeBalanceOf public function which gets account stake balance
+     * @dev stakedBalanceOf public function which gets account stake balance,
+     * using precalculated sums (optimal)
      * @return stake balance for given account
      */
-    function stakeBalanceOf(address account) public view returns (uint256) {
+    function stakedBalanceOf(address account) public view returns (uint256) {
+        return depositSums[account];
+    }
+
+    /**
+     * @dev recalculatedBalanceOf public function which gets account stake balance,
+     * using TimedValuesStorage deposit, iteration over the whole array of stakes
+     * @return stake balance for given account
+     */
+    function recalculatedBalanceOf(address account) public view returns (uint256) {
         return stakeDeposits.depositSum(account);
     }
 
     /**
-     * @dev calculate total authorized stake older than authorizedStakePeriod
+     * @dev authStakedBalanceOf calculate total authorized stake older than authorizedStakePeriod
      * @notice less optinal than isAccountAuthorized check and still may not meet authorizedStakeAmount requirement
      * @return amount of account total authorized stake balance
      */
-    function authStakeBalanceOf(address account) public view returns (uint256) {
+    function authStakedBalanceOf(address account) public view returns (uint256) {
         // solhint-disable-next-line not-rely-on-time
         uint256 maxTimestamp = block.timestamp - authorizedStakePeriod;
         return stakeDeposits.valueStoredLongEnough(account, maxTimestamp);
@@ -81,6 +95,27 @@ contract Staking is Ownable, Pausable {
         // solhint-disable-next-line not-rely-on-time
         uint256 maxTimestamp = block.timestamp - authorizedStakePeriod;
         return stakeDeposits.isStoredLongEnough(account, authorizedStakeAmount, maxTimestamp);
+    }
+
+    /**
+     * @dev gets stakes Limit set on stakeDeposit
+     */
+    function getMaxNumOfStakes() public view returns (uint256) {
+        return stakeDeposits.maxDepositArrayLength();
+    }
+
+    /**
+     * @dev Helper which returns real deposit length for given account
+     */
+    function getAccountRealDepositLength(address account) public view returns (uint256) {
+        return stakeDeposits.realDepositsLength(account);
+    }
+
+    /**
+     * @dev Helper which returns allocated deposit length for given account
+     */
+    function getAccountAllocDepositLength(address account) public view returns (uint256) {
+        return stakeDeposits.allocDepositLength(account);
     }
 
     /**
@@ -120,75 +155,61 @@ contract Staking is Ownable, Pausable {
     }
 
     /**
+     * @dev sets a new Limit for amount of stakes on stakeDeposit
+     */
+    function setMaxNumOfStakes(uint256 newLimit) external onlyOwner {
+        stakeDeposits.setMaxDepositArrayLength(newLimit);
+    }
+
+    /**
      * @dev Stake tokens inside stakeDeposit
-     * @return a boolean value indicating whether the operation succeeded
      *
      * Emits a {StakeAdded} event
      */
-    function stake(uint256 amount) public whenNotPaused returns (bool) {
-        return stakeFor(msg.sender, amount);
+    function stake(uint256 amount) public whenNotPaused {
+        stakeFor(msg.sender, amount);
     }
 
     /**
      * @dev StakeFor sends tokens to another address stake
-     * @return a boolean value indicating whether the operation succeeded
      *
      * Emits a {StakeAdded} event
      */
-    function stakeFor(address receiver, uint256 amount) public whenNotPaused returns (bool) {
+    function stakeFor(address receiver, uint256 amount) public whenNotPaused {
         require(amount > 0, "Staking: cannot stake 0");
 
         // will transfer tokens to this contract (require approve)
         IERC20(stakedToken).safeTransferFrom(msg.sender, address(this), amount);
 
         stakeDeposits.pushValue(receiver, amount);
+        depositSums[receiver] += amount;
 
-        uint256 check = stakeBalanceOf(receiver);
+        uint256 check = stakedBalanceOf(receiver);
         require(check >= authorizedStakeAmount, "Staking: stake too small");
 
         emit StakeAdded(receiver, amount);
-        return true;
     }
 
     /**
      * @dev Unstake sends staked tokens back to the sender
-     * @return a boolean value indicating whether the operation succeeded
      *
      * Emits a {StakeRemoved} event
      */
-    function unstake(uint256 amount) public whenNotPaused returns (bool) {
+    function unstake(uint256 amount) public whenNotPaused {
         require(amount > 0, "Staking: cannot unstake 0");
+        require(depositSums[msg.sender] >= amount, "Staking: amount exceeds balance");
 
-        uint256 amountToUnstake = amount;
-
-        _unstake(msg.sender, amountToUnstake);
+        if (depositSums[msg.sender] == amount) {
+            stakeDeposits.removeAll(msg.sender);
+        }
+        else {
+            stakeDeposits.removeValue(msg.sender, amount);
+        }
+        depositSums[msg.sender] -= amount;
 
         // will transfer tokens to the caller
-        IERC20(stakedToken).safeTransfer(msg.sender, amountToUnstake);
+        IERC20(stakedToken).safeTransfer(msg.sender, amount);
 
-        emit StakeRemoved(msg.sender, amountToUnstake);
-        return true;
-    }
-
-    /**
-     * @dev Unstake the whole amount
-     */
-    function _unstakeAll(address account) internal {
-        stakeDeposits.removeAll(account);
-    }
-
-    /**
-     * @dev Unstake all or partial depending on the amount
-     */
-    function _unstake(address account, uint256 amount) internal {
-        uint256 accStake = stakeDeposits.depositSum(account);
-        require(amount <= accStake, "Unstake: amount exceeds balance");
-
-        if (accStake == amount) {
-            _unstakeAll(account);
-            return;
-        }
-
-        stakeDeposits.removeValue(account, amount);
+        emit StakeRemoved(msg.sender, amount);
     }
 }

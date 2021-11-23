@@ -19,12 +19,19 @@ contract TimedValuesStorage is Ownable {
        uint256 timestamp;
     }
 
+    // limit on deposits TimedValue array length, which prevents reaching gas limit
+    uint256 public maxDepositArrayLength;
+
+    // additional length index for each of deposit TimedValue array,
+    // which makes operations in deposits more optimal
+    mapping(address => uint256) public realDepositsLength;
+
     // TimedValue mapping structure, storing TimedValue for all accounts
     mapping(address => TimedValue[]) private deposits;
 
     // require non empty deposit for given account
     modifier nonEmpty(address account) {
-        require(deposits[account].length > 0, "no item found");
+        require(realDepositsLength[account] > 0, "no item found");
         _;
     }
 
@@ -35,7 +42,7 @@ contract TimedValuesStorage is Ownable {
     function depositSum(address account) public view returns (uint256) {
         uint256 totalAccValue;
 
-        for (uint i = 0; i < deposits[account].length; i++) {
+        for (uint i = 0; i < realDepositsLength[account]; i++) {
             totalAccValue += deposits[account][i].value;
         }
 
@@ -50,7 +57,7 @@ contract TimedValuesStorage is Ownable {
     function isStoredLongEnough(address account, uint256 minValue, uint256 maxTimestamp) external view returns (bool) {
         uint256 enoughValue;
 
-        for (uint i = 0; i < deposits[account].length; i++) {
+        for (uint i = 0; i < realDepositsLength[account]; i++) {
             if (deposits[account][i].timestamp > maxTimestamp) {
                 break;
             }
@@ -73,7 +80,7 @@ contract TimedValuesStorage is Ownable {
     function valueStoredLongEnough(address account, uint256 maxTimestamp) external view returns (uint256) {
         uint256 totalValue;
 
-        for (uint i = 0; i < deposits[account].length; i++) {
+        for (uint i = 0; i < realDepositsLength[account]; i++) {
             if (deposits[account][i].timestamp > maxTimestamp) {
                 break;
             }
@@ -89,21 +96,63 @@ contract TimedValuesStorage is Ownable {
      * @return last account value
      */
     function _getLastValue(address account) private view nonEmpty(account) returns (uint256) {
-        uint256 lastIdx = deposits[account].length - 1;
+        uint256 lastIdx = realDepositsLength[account] - 1;
         return deposits[account][lastIdx].value;
     }
 
     /**
-     * @dev Push a new Value at the end of account TimedValue array
+      * @dev Helper, returns allocated deposit array length
+      */
+    function allocDepositLength(address account) public view returns (uint256) {
+        return deposits[account].length;
+    }
+
+    /**
+      * @dev Helper, checks if max alloved array length is achieved
+      */
+    function maxDepositLengthAchieved(address account) public view returns (bool) {
+        return realDepositsLength[account] >= maxDepositArrayLength;
+    }
+
+    /**
+     * @dev sets a new maxDepositArrayLength limit
+     */
+    function setMaxDepositArrayLength(uint256 newLimit) external onlyOwner {
+        require(newLimit > 0, "should have at least one value");
+        maxDepositArrayLength = newLimit;
+    }
+
+    /**
+     * @dev Push a new Value to deposits
+     * @notice depends on realDepositsLength and maxDepositArrayLength, value could be
+     * - simply pushed at the end of deposit TimedValuesStorage array
+     * - added to existing value (but invalidated [removed]), by overwrite already allocated one
+     * - if maxDepositArrayLength is reached, added to the last correct value (update timestamp)
      */
     function pushValue(address account, uint256 value) external onlyOwner {
+        if (maxDepositLengthAchieved(account)) {
+            // instead of adding a new value to the array and increasing its length, modify last value
+            _increaseLastValue(account, value);
+            return;
+        }
+
         TimedValue memory timedValue = TimedValue({
             value: value,
             // solhint-disable-next-line not-rely-on-time
-            timestamp: block.timestamp // used for a long period of time (x days)
+            timestamp: block.timestamp // used for a long period of time
         });
 
-        deposits[account].push(timedValue);
+        if (realDepositsLength[account] == allocDepositLength(account)) {
+            deposits[account].push(timedValue);
+            realDepositsLength[account]++;
+
+        }
+        else {
+            // overwrite existing but removed value
+            uint256 firstFreeIdx = realDepositsLength[account];
+            deposits[account][firstFreeIdx] = timedValue;
+            realDepositsLength[account]++;
+        }
     }
 
     /**
@@ -121,7 +170,8 @@ contract TimedValuesStorage is Ownable {
                 require(removed == lastValue, "removed value does not match");
 
                 leftToRemove -= lastValue;
-            } else {
+            }
+            else {
                 _decreaseLastValue(account, leftToRemove);
                 leftToRemove = 0;
             }
@@ -129,10 +179,10 @@ contract TimedValuesStorage is Ownable {
     }
 
     /**
-     * @dev Removes the whole account deposit
+     * @dev Removes the whole account deposit, by simply setting realDepositsLength to 0
      */
     function removeAll(address account) external nonEmpty(account) onlyOwner {
-        delete deposits[account];
+        realDepositsLength[account] = 0;
     }
 
     /**
@@ -142,17 +192,31 @@ contract TimedValuesStorage is Ownable {
     function _removeLastValue(address account) private nonEmpty(account) returns (uint256) {
         uint256 valueToRemove = _getLastValue(account);
 
-        deposits[account].pop();
+        realDepositsLength[account]--; // decrement realDepositsLength instead of pop
 
         return valueToRemove;
     }
 
     /**
-     * @dev Decrease / Update last value
+     * @dev Increase / Update last value, set new timestamp
+     */
+    function _increaseLastValue(address account, uint256 increaseValue) private nonEmpty(account) {
+        require(increaseValue != 0, "zero increase");
+        uint256 lastIdx = realDepositsLength[account] - 1;
+
+        deposits[account][lastIdx].value += increaseValue;
+        // solhint-disable-next-line not-rely-on-time
+        deposits[account][lastIdx].timestamp = block.timestamp;
+    }
+
+    /**
+     * @dev Decrease / Update last value, leave timestamp unchanged
      * @notice requires that decreaseValue is not equal to the last value (in that case remove should be used)
      */
     function _decreaseLastValue(address account, uint256 decreaseValue) private nonEmpty(account) {
-        uint256 lastIdx = deposits[account].length - 1;
+        require(decreaseValue != 0, "zero decrease");
+        uint256 lastIdx = realDepositsLength[account] - 1;
+
         uint256 lastValue = deposits[account][lastIdx].value;
         require(decreaseValue < lastValue, "decrease should be smaller");
 
