@@ -21,9 +21,9 @@ export async function  setupTestGovernanceToken(): Promise<Contract> {
     return testGovernanceTokenInstance
 }
 
-export async function  setupVestingContract(governanceTokenAddress: string): Promise<Contract> {
+export async function  setupVestingContract(governanceTokenAddress: string, vestingCloseOffset: string | number): Promise<Contract> {
     const VestingContract = await ethers.getContractFactory("Vesting")
-    const vestingContractInstance = await VestingContract.deploy(governanceTokenAddress)
+    const vestingContractInstance = await VestingContract.deploy(governanceTokenAddress, vestingCloseOffset)
     await vestingContractInstance.deployed()
 
     return vestingContractInstance
