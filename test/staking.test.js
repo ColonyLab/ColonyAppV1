@@ -33,10 +33,23 @@ const unstake = async (who, unstakeAmount) => {
     await colonyStaking.connect(who).unstake(toTokens(unstakeAmount))
 }
 
+// additional check if both mappings are in sync
+const stakedBalanceOf = async (who) => {
+    const stake1 = await colonyStaking.stakedBalanceOf(who.address)
+    const stake2 = await colonyStaking.recalculatedBalanceOf(who.address)
+
+    if (!stake1.eq(stake2)) {
+        throw Error("colonyStaking and stakeDeposits are not in sync!")
+    }
+
+    return stake1
+}
+
 describe("Colony Staking", function () {
   const stakeAmount = 34560
   const minStake = 50
   const initAmount = 1000000
+  const defaultStakesLimit = 100
 
   beforeEach(async() => {
     [owner, addr1, addr2, publicSaleWallet, privateSaleWallet, vestingContract] = await ethers.getSigners()
@@ -46,12 +59,13 @@ describe("Colony Staking", function () {
     await colonyGovernanceToken.initialMint(
         [publicSaleWallet.address, privateSaleWallet.address],
         [toTokens('5000000', decimals), toTokens('50000000', decimals)]
-    );
+    )
 
     // transfer initial token amount to test address
     await colonyGovernanceToken.connect(publicSaleWallet).transfer(addr1.address, toTokens(initAmount))
 
-    colonyStaking = await setupStakingContract(colonyGovernanceToken.address, toTokens('50', decimals), 20*24*60*60)
+    // 20 days
+    colonyStaking = await setupStakingContract(colonyGovernanceToken.address, toTokens('50', decimals), 20*24*3600)
     defaultAuthPeriod = parseInt((await colonyStaking.authorizedStakePeriod()).toString())
   })
 
@@ -84,7 +98,7 @@ describe("Colony Staking", function () {
   it("Stake", async function () {
     await stake(addr1, stakeAmount)
 
-    expect(await colonyStaking.stakeBalanceOf(addr1.address)).to.equal(toTokens(stakeAmount))
+    expect(await stakedBalanceOf(addr1)).to.equal(toTokens(stakeAmount))
 
     // check if amount was extracted in governanceToken
     const expectedBalance = toTokens(initAmount - stakeAmount)
@@ -96,9 +110,9 @@ describe("Colony Staking", function () {
     await stake(publicSaleWallet, 2*stakeAmount)
     await stake(privateSaleWallet, 7*stakeAmount)
 
-    expect(await colonyStaking.stakeBalanceOf(addr1.address)).to.equal(toTokens(stakeAmount))
-    expect(await colonyStaking.stakeBalanceOf(publicSaleWallet.address)).to.equal(toTokens(2*stakeAmount))
-    expect(await colonyStaking.stakeBalanceOf(privateSaleWallet.address)).to.equal(toTokens(7*stakeAmount))
+    expect(await stakedBalanceOf(addr1)).to.equal(toTokens(stakeAmount))
+    expect(await stakedBalanceOf(publicSaleWallet)).to.equal(toTokens(2*stakeAmount))
+    expect(await stakedBalanceOf(privateSaleWallet)).to.equal(toTokens(7*stakeAmount))
 
     expect(await colonyStaking.totalStaked()).to.equal(toTokens(10*stakeAmount))
   })
@@ -112,16 +126,16 @@ describe("Colony Staking", function () {
     await stake(addr1, stakeAmount)
 
     await expect(colonyStaking.connect(addr1).unstake(toTokens(2*stakeAmount + 1)))
-      .to.be.revertedWith("Unstake: amount exceeds balance")
+      .to.be.revertedWith("Staking: amount exceeds balance")
   })
 
   it("Unstake all", async function () {
     await stake(addr1, stakeAmount)
 
-    const staked = await colonyStaking.stakeBalanceOf(addr1.address)
+    const staked = await stakedBalanceOf(addr1)
     await colonyStaking.connect(addr1).unstake(staked)
 
-    expect(await colonyStaking.stakeBalanceOf(addr1.address)).to.equal(0)
+    expect(await stakedBalanceOf(addr1)).to.equal(0)
 
     // check if amount was returned to governanceToken
     expect(await colonyGovernanceToken.balanceOf(addr1.address)).to.equal(toTokens(initAmount))
@@ -130,14 +144,14 @@ describe("Colony Staking", function () {
   it("Stake again after unstake all", async function () {
     await stake(addr1, stakeAmount)
 
-    const staked = await colonyStaking.stakeBalanceOf(addr1.address)
+    const staked = await stakedBalanceOf(addr1)
     await colonyStaking.connect(addr1).unstake(staked)
 
-    expect(await colonyStaking.stakeBalanceOf(addr1.address)).to.equal(0)
+    expect(await stakedBalanceOf(addr1)).to.equal(0)
 
     await stake(addr1, stakeAmount) // stake again after unstake all
     await stake(addr1, stakeAmount)
-    expect(await colonyStaking.stakeBalanceOf(addr1.address)).to.equal(toTokens(2*stakeAmount))
+    expect(await stakedBalanceOf(addr1)).to.equal(toTokens(2*stakeAmount))
   })
 
   it("Unstake partial", async function () {
@@ -147,7 +161,7 @@ describe("Colony Staking", function () {
     await unstake(addr1, stakeAmount2)
 
     const expectedStake = stakeAmount - stakeAmount2
-    expect(await colonyStaking.stakeBalanceOf(addr1.address)).to.equal(toTokens(expectedStake))
+    expect(await stakedBalanceOf(addr1)).to.equal(toTokens(expectedStake))
 
     // check if amount was returned to governanceToken correctly
     const expectedBalance = toTokens(initAmount - expectedStake)
@@ -158,7 +172,7 @@ describe("Colony Staking", function () {
     await colonyGovernanceToken.connect(addr1).approve(colonyStaking.address, toTokens(minStake))
     await colonyStaking.connect(addr1).stakeFor(addr2.address, toTokens(minStake))
 
-    expect(await colonyStaking.stakeBalanceOf(addr2.address)).to.equal(toTokens(minStake))
+    expect(await stakedBalanceOf(addr2)).to.equal(toTokens(minStake))
 
     // check if amount was extracted in governanceToken
     const expectedBalance = toTokens(initAmount - minStake)
@@ -190,7 +204,7 @@ describe("Colony Staking", function () {
     await unstake(addr1, unstake4)
 
     const expectedFinalStake = (stake1 + stake2 + stake3 + stake4 - unstake1 - unstake2 - unstake3 - unstake4)
-    expect(await colonyStaking.stakeBalanceOf(addr1.address)).to.equal(toTokens(expectedFinalStake))
+    expect(await stakedBalanceOf(addr1)).to.equal(toTokens(expectedFinalStake))
 
     // check if amount was returned to governanceToken correctly
     const expectedBalance = toTokens(initAmount - expectedFinalStake)
@@ -207,12 +221,42 @@ describe("Colony Staking", function () {
 
     await unstake(addr1, rounds * (minStake - 10))
 
-    expect(await colonyStaking.stakeBalanceOf(addr1.address)).to.equal(0)
+    expect(await stakedBalanceOf(addr1)).to.equal(0)
     expect(await colonyGovernanceToken.balanceOf(addr1.address)).to.equal(toTokens(initAmount))
   })
 
+  it("Multiple stake / unstake 3", async function () {
+    await colonyStaking.connect(owner).setMaxNumOfStakes(4)
+
+    const rounds = 5
+
+    for (let i = 0; i < rounds; i++) {
+      await stake(addr1, minStake)
+    }
+
+    // unstake all
+    await unstake(addr1, rounds * minStake)
+
+    for (let i = 0; i < rounds; i++) {
+      await stake(addr1, 2*minStake)
+    }
+
+    // unstake half
+    await unstake(addr1, rounds * minStake)
+
+    expect(await stakedBalanceOf(addr1)).to.equal(toTokens(rounds*minStake))
+    expect(await colonyGovernanceToken.balanceOf(addr1.address)).to.equal(toTokens(initAmount - rounds*minStake))
+
+    for (let i = 0; i < rounds; i++) {
+      await stake(addr1, 3*minStake)
+    }
+
+    expect(await stakedBalanceOf(addr1)).to.equal(toTokens(4*rounds*minStake))
+    expect(await colonyGovernanceToken.balanceOf(addr1.address)).to.equal(toTokens(initAmount - 4*rounds*minStake))
+  })
+
   it("Unstake partial - gas limit", async function () {
-    const rounds = 20
+    const rounds = 30
     let totalStaked = 0
 
     for (let i = 0; i < rounds; i++) {
@@ -221,25 +265,25 @@ describe("Colony Staking", function () {
     }
 
     // stake is stored on array so it is good to check if it exceeds resonable gas limit
-    const options = { gasLimit: 450000 }
+    const options = { gasLimit: 150000 }
     await colonyStaking.connect(addr1).unstake(toTokens(totalStaked/2), options)
 
-    expect(await colonyStaking.stakeBalanceOf(addr1.address)).to.equal(toTokens(totalStaked/2))
+    expect(await stakedBalanceOf(addr1)).to.equal(toTokens(totalStaked/2))
     expect(await colonyGovernanceToken.balanceOf(addr1.address)).to.equal(toTokens(initAmount - totalStaked/2))
   })
 
   it("Unstake all - gas limit", async function () {
-    const rounds = 40
+    const rounds = 80
 
     for (let i = 0; i < rounds; i++) {
       await stake(addr1, minStake)
     }
 
-    // unstake all it's a bit more optimal than partial (but still require to check balance, which could be heavy)
-    const options = { gasLimit: 450000 }
-    await colonyStaking.connect(addr1).unstake(toTokens(rounds*minStake))
+    // cost of unstake all is optimized and do not depend on stake num
+    const options = { gasLimit: 80000 }
+    await colonyStaking.connect(addr1).unstake(toTokens(rounds*minStake), options)
 
-    expect(await colonyStaking.stakeBalanceOf(addr1.address)).to.equal(0)
+    expect(await stakedBalanceOf(addr1)).to.equal(0)
     expect(await colonyGovernanceToken.balanceOf(addr1.address)).to.equal(toTokens(initAmount))
   })
 
@@ -253,17 +297,17 @@ describe("Colony Staking", function () {
 
   it("Authorized Stake", async function () {
     await stake(addr1, minStake)
-    expect(await colonyStaking.authStakeBalanceOf(addr1.address)).to.be.equal(0) // 0 - needs to wait authPeriod
+    expect(await colonyStaking.authStakedBalanceOf(addr1.address)).to.be.equal(0) // 0 - needs to wait authPeriod
 
     await increaseTime(defaultAuthPeriod)
-    expect(await colonyStaking.authStakeBalanceOf(addr1.address)).to.be.equal(toTokens(minStake))
+    expect(await colonyStaking.authStakedBalanceOf(addr1.address)).to.be.equal(toTokens(minStake))
 
     await stake(addr1, minStake)
     await stake(addr1, minStake)
-    expect(await colonyStaking.authStakeBalanceOf(addr1.address)).to.be.equal(toTokens(minStake))
+    expect(await colonyStaking.authStakedBalanceOf(addr1.address)).to.be.equal(toTokens(minStake))
 
     await increaseTime(defaultAuthPeriod)
-    expect(await colonyStaking.authStakeBalanceOf(addr1.address)).to.be.equal(toTokens(3*minStake))
+    expect(await colonyStaking.authStakedBalanceOf(addr1.address)).to.be.equal(toTokens(3*minStake))
   })
 
   it("Change Authorized Values", async function () {
@@ -298,7 +342,7 @@ describe("Colony Staking", function () {
 
     await unstake(addr1, minStake) // should decrease new stake and still be featured
     expect(await colonyStaking.isAccountAuthorized(addr1.address)).to.be.equal(true)
-    expect(await colonyStaking.stakeBalanceOf(addr1.address)).to.equal(toTokens(3*minStake))
+    expect(await stakedBalanceOf(addr1)).to.equal(toTokens(3*minStake))
   })
 
   it("Featured Account - Change Auth Values", async function () {
@@ -339,5 +383,171 @@ describe("Colony Staking", function () {
     await stake(addr1, minStake) // ok
     await stakeFor(addr1, addr2, minStake) // ok
     await unstake(addr1, minStake) // ok
+  })
+
+  it("MaxStakes: Change max number of stakes", async function () {
+    expect(await colonyStaking.connect(owner).getMaxNumOfStakes()).to.be.equal(100)
+    await colonyStaking.connect(owner).setMaxNumOfStakes(4)
+
+    expect(await colonyStaking.connect(owner).getMaxNumOfStakes()).to.be.equal(4)
+    expect(colonyStaking.connect(owner).setMaxNumOfStakes(0)).to.be.revertedWith("should have at least one value")
+  })
+
+  it("MaxStakes: realLen == [].len AND realLen < max_stakes", async function () {
+    const rounds = 3
+    for (let i = 0; i < rounds; i++) {
+      await stake(addr1, minStake)
+    }
+
+    expect(await colonyStaking.connect(addr1).getAccountRealDepositLength(addr1.address)).to.equal(rounds)
+    expect(await colonyStaking.connect(addr1).getAccountAllocDepositLength(addr1.address)).to.equal(rounds)
+    expect(await colonyStaking.getMaxNumOfStakes()).to.equal(defaultStakesLimit)
+
+    expect(await stakedBalanceOf(addr1)).to.equal(toTokens(rounds*minStake))
+  })
+
+  it("MaxStakes: realLen == [].len AND realLen == max_stakes", async function () {
+    const stakesLimit = 3
+    await colonyStaking.connect(owner).setMaxNumOfStakes(stakesLimit)
+    expect(await colonyStaking.getMaxNumOfStakes()).to.equal(stakesLimit)
+
+    const rounds = 5
+    for (let i = 0; i < rounds; i++) {
+      await stake(addr1, minStake)
+    }
+
+    expect(await colonyStaking.connect(addr1).getAccountRealDepositLength(addr1.address)).to.equal(stakesLimit)
+    expect(await colonyStaking.connect(addr1).getAccountAllocDepositLength(addr1.address)).to.equal(stakesLimit)
+
+    expect(await stakedBalanceOf(addr1)).to.equal(toTokens(rounds*minStake))
+
+    // add 1 stake more
+    await stake(addr1, minStake)
+    // length didn't changed
+    expect(await colonyStaking.connect(addr1).getAccountRealDepositLength(addr1.address)).to.equal(stakesLimit)
+    expect(await colonyStaking.connect(addr1).getAccountAllocDepositLength(addr1.address)).to.equal(stakesLimit)
+    // balance +1 stake
+    expect(await stakedBalanceOf(addr1)).to.equal(toTokens((rounds+1)*minStake))
+  })
+
+  it("MaxStakes: realLen == [].len AND realLen > max_stakes", async function () {
+    const rounds = 5
+    for (let i = 0; i < rounds; i++) {
+      await stake(addr1, minStake)
+    }
+
+    const stakesLimit = 3
+    await colonyStaking.connect(owner).setMaxNumOfStakes(stakesLimit)
+    expect(await colonyStaking.getMaxNumOfStakes()).to.equal(stakesLimit)
+
+    // stakesLimit is 3 now, but addr1 already had 5 stakes
+    expect(await colonyStaking.connect(addr1).getAccountRealDepositLength(addr1.address)).to.equal(rounds)
+    expect(await colonyStaking.connect(addr1).getAccountAllocDepositLength(addr1.address)).to.equal(rounds)
+    expect(await stakedBalanceOf(addr1)).to.equal(toTokens(rounds*minStake))
+
+    // add another 6'th stake
+    await stake(addr1, minStake)
+
+    // still 5 stakes
+    expect(await colonyStaking.connect(addr1).getAccountRealDepositLength(addr1.address)).to.equal(rounds)
+    expect(await colonyStaking.connect(addr1).getAccountAllocDepositLength(addr1.address)).to.equal(rounds)
+    // but balance is equal to 6 * stakes
+    expect(await stakedBalanceOf(addr1)).to.equal(toTokens((rounds+1)*minStake))
+  })
+
+  it("MaxStakes: realLen != [].len AND realLen < max_stakes", async function () {
+    // default stakes limit
+    expect(await colonyStaking.getMaxNumOfStakes()).to.equal(defaultStakesLimit)
+
+    const rounds = 5
+    for (let i = 0; i < rounds; i++) {
+      await stake(addr1, minStake)
+    }
+
+    // unstake 2 values, makes realLen != allocated
+    await unstake(addr1, 2*minStake)
+    expect(await stakedBalanceOf(addr1)).to.equal(toTokens((rounds-2)*minStake))
+
+    // add one stake more
+    await stake(addr1, minStake)
+    const expectedStakesNum = rounds - 2 + 1
+
+    expect(await colonyStaking.connect(addr1).getAccountRealDepositLength(addr1.address)).to.equal(expectedStakesNum)
+    // allocated is different
+    expect(await colonyStaking.connect(addr1).getAccountAllocDepositLength(addr1.address)).to.equal(rounds)
+
+    expect(await stakedBalanceOf(addr1)).to.equal(toTokens((rounds-2+1)*minStake))
+  })
+
+  it("MaxStakes: realLen != [].len AND realLen == max_stakes", async function () {
+    const rounds = 5
+    for (let i = 0; i < rounds; i++) {
+      await stake(addr1, minStake)
+    }
+
+    // unstake 2 values, makes realLen != allocated
+    await unstake(addr1, 2*minStake)
+
+    const stakesLimit = 4
+    await colonyStaking.connect(owner).setMaxNumOfStakes(stakesLimit)
+    expect(await colonyStaking.getMaxNumOfStakes()).to.equal(stakesLimit)
+
+    // add 2 stakes more
+    await stake(addr1, minStake)
+    await stake(addr1, minStake)
+
+    // stakesLimit
+    expect(await colonyStaking.connect(addr1).getAccountRealDepositLength(addr1.address)).to.equal(stakesLimit)
+    expect(await colonyStaking.connect(addr1).getAccountAllocDepositLength(addr1.address)).to.equal(rounds)
+
+    // rounds - 2 + 2
+    expect(await stakedBalanceOf(addr1)).to.equal(toTokens(rounds*minStake))
+  })
+
+  it("MaxStakes: realLen != [].len AND realLen > max_stakes", async function () {
+    const rounds = 7
+    for (let i = 0; i < rounds; i++) {
+      await stake(addr1, minStake)
+    }
+
+    // unstake 2 values, makes realLen != allocated
+    await unstake(addr1, 2*minStake)
+    let expectedBalance = (rounds - 2) * minStake
+
+    const stakesLimit = 2 // limit(2) < realLen(5)
+    await colonyStaking.connect(owner).setMaxNumOfStakes(stakesLimit)
+    expect(await colonyStaking.getMaxNumOfStakes()).to.equal(stakesLimit)
+
+    // add 1 take more (array length should remain 5)
+    await stake(addr1, minStake)
+    expectedBalance = expectedBalance + minStake
+
+    expect(await colonyStaking.connect(addr1).getAccountRealDepositLength(addr1.address)).to.equal(rounds-2)
+    expect(await stakedBalanceOf(addr1)).to.equal(toTokens(expectedBalance))
+
+    // unstake 1 value (2 stakes in one arr element)
+    await unstake(addr1, 2*minStake)
+    // and stake 2 more
+    await stake(addr1, minStake)
+    await stake(addr1, minStake)
+
+    // len decreased by one
+    expect(await colonyStaking.connect(addr1).getAccountRealDepositLength(addr1.address)).to.equal(rounds-3)
+    // but balance remain the same
+    expect(await stakedBalanceOf(addr1)).to.equal(toTokens(expectedBalance))
+
+    // unstake all
+    await unstake(addr1, expectedBalance)
+    expect(await stakedBalanceOf(addr1)).to.equal(0)
+    // and add 4 stakes
+    await stake(addr1, minStake)
+    await stake(addr1, minStake)
+    await stake(addr1, minStake)
+    await stake(addr1, minStake)
+    expectedBalance = 4 * minStake
+
+    // hits and stay with stakesLimit
+    expect(await colonyStaking.connect(addr1).getAccountRealDepositLength(addr1.address)).to.equal(stakesLimit)
+    expect(await stakedBalanceOf(addr1)).to.equal(toTokens(expectedBalance))
   })
 })
