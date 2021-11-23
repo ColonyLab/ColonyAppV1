@@ -28,6 +28,7 @@ contract Vesting is Ownable, Pausable {
      **************************************/
 
     bool public vestingStarted;        // true when the vesting procedure has started
+    bool public vestingCompleted;      // true when last funds are reclaimed and contract no longer functional
     uint public vestingStartTimestamp; // the starting timestamp of vesting schedule
     IERC20 public vestingToken;        // the address of an ERC20 token used for vesting
 
@@ -45,9 +46,10 @@ contract Vesting is Ownable, Pausable {
     struct GroupData {
         string name;                     // Name of group
         uint distributionAmount;         // The amount of tokens that can be distributed within this group
-        uint vestedAmount;               // The actual number of vested tokens within this group
+        uint vestedAmount;               // The actual number of tokens currently assigned for distribution
         uint distributionStartOffset;    // The offset of distribution start from vesting start timestamp
         uint distributionLength;         // The total length in ms of distribution.
+        uint initialRelease;        // The percentage mantissa of the tokens to be distributed when vesting begins
     }
 
     event VestingStarted();
@@ -57,7 +59,8 @@ contract Vesting is Ownable, Pausable {
         string groupName,
         uint maxDistributionAmount,
         uint distributionOffset,
-        uint distributionLength
+        uint distributionLength,
+        uint initialRelease
     );
     event TokensClaimed(address user, uint groupId, uint amount);
 
@@ -100,13 +103,20 @@ contract Vesting is Ownable, Pausable {
      *  @return the amount of tokens that can be claimed
      */
     function checkClaim(address account) public view returns (uint) {
-        UserData memory userData = userConfiguration[account];
-        GroupData memory groupData = groupsConfiguration[userData.groupId];
+        UserData storage userData = userConfiguration[account];
+        GroupData storage groupData = groupsConfiguration[userData.groupId];
 
-        // return 0 if release has not started for this address yet
-        if (block.timestamp <= (vestingStartTimestamp + groupData.distributionStartOffset)) {
-            return 0;
+        uint initialReleaseShare;
+
+        if (vestingStarted && vestingStartTimestamp <= block.timestamp) {
+            initialReleaseShare = groupData.initialRelease * userData.vestAmount / 1e18;
         }
+
+        // return only the initial release share when vesting for group has not started yet
+        if (block.timestamp <= (vestingStartTimestamp + groupData.distributionStartOffset)) {
+            return initialReleaseShare - userData.withdrawnAmount;
+        }
+
 
         // return all available amount of unclaimed tokens if the vesting ended
         if ((block.timestamp - (vestingStartTimestamp + groupData.distributionStartOffset)) >= groupData.distributionLength ) {
@@ -115,11 +125,12 @@ contract Vesting is Ownable, Pausable {
 
         // or calculate the amount of tokens when vesting is in progress
         return
+            initialReleaseShare +
             (
                 (block.timestamp - (vestingStartTimestamp + groupData.distributionStartOffset))
                 * 1e18
                 / groupData.distributionLength
-                * userData.vestAmount
+                * (userData.vestAmount - initialReleaseShare)
                 / 1e18
             )
             - userData.withdrawnAmount;
@@ -144,10 +155,12 @@ contract Vesting is Ownable, Pausable {
         string memory groupName,
         uint distributionAmount,
         uint distributionStartOffset,
-        uint distributionLength
+        uint distributionLength,
+        uint initialRelease
     ) external onlyOwner beforeVestingStarted returns(uint) {
         require(distributionAmount > 0, "Invalid Distribution Amount!");
         require(distributionLength > 0, "Invalid Distribution Lenght!");
+        require(initialRelease <= 1e18, "Invalid Initial Release!");
 
         uint sumDistributionAmount = 0;
         for (uint i; i < groupsConfiguration.length; i++) {
@@ -160,10 +173,11 @@ contract Vesting is Ownable, Pausable {
         groupData.distributionAmount = distributionAmount;
         groupData.distributionStartOffset = distributionStartOffset;
         groupData.distributionLength = distributionLength;
+        groupData.initialRelease = initialRelease;
 
         groupsConfiguration.push(groupData);
         uint groupId = groupsConfiguration.length - 1;
-        emit GroupDataSet(groupId, groupName, distributionAmount, distributionStartOffset, distributionLength);
+        emit GroupDataSet(groupId, groupName, distributionAmount, distributionStartOffset, distributionLength, initialRelease);
 
         return groupId;
     }
@@ -257,7 +271,6 @@ contract Vesting is Ownable, Pausable {
     function _unpauseVesting() external onlyOwner afterVestingStarted whenPaused {
         super._unpause();
     }
-
 
 
 

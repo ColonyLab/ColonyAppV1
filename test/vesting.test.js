@@ -30,16 +30,18 @@ describe("Vesting Contract - vesting process tests", function () {
 
     it("Add a group with no distribution offset", async function () {
         const name = "No starting offset group";
-        const distributionAmount = toTokens(150,decimals);
+        const distributionAmount = toTokens('150',decimals);
         const distributionStartOffset = 0;
         const distributionLength = 10000;
         const groupId = 0;
+        const initialRelease = 0;
 
         const tx = vestingContract._setGroup(
             name,
             distributionAmount,
             distributionStartOffset,
-            distributionLength
+            distributionLength,
+            initialRelease
         )
         await hasEmittedEvent(
             tx,
@@ -49,7 +51,8 @@ describe("Vesting Contract - vesting process tests", function () {
                 name,
                 distributionAmount,
                 distributionStartOffset,
-                distributionLength
+                distributionLength,
+                initialRelease
             ]
         );
 
@@ -58,20 +61,23 @@ describe("Vesting Contract - vesting process tests", function () {
         expect(newGroup.distributionAmount).to.equal(distributionAmount);
         expect(newGroup.distributionStartOffset).to.equal(distributionStartOffset);
         expect(newGroup.distributionLength).to.equal(distributionLength);
+        expect(newGroup.initialRelease).to.equal(initialRelease);
     })
 
     it("Add a group with distribution offset", async function () {
         const name = "Group with offset";
-        const distributionAmount = toTokens(300,decimals);
+        const distributionAmount = toTokens('300', decimals);
         const distributionStartOffset = 1000;
         const distributionLength = 20000;
         const groupId = 1;
+        const initialRelease = 0;
 
         const tx = vestingContract._setGroup(
             name,
             distributionAmount,
             distributionStartOffset,
-            distributionLength
+            distributionLength,
+            initialRelease
         )
         await hasEmittedEvent(
             tx,
@@ -81,7 +87,8 @@ describe("Vesting Contract - vesting process tests", function () {
                 name,
                 distributionAmount,
                 distributionStartOffset,
-                distributionLength
+                distributionLength,
+                initialRelease
             ]
         );
 
@@ -90,19 +97,58 @@ describe("Vesting Contract - vesting process tests", function () {
         expect(newGroup.distributionAmount).to.equal(distributionAmount);
         expect(newGroup.distributionStartOffset).to.equal(distributionStartOffset);
         expect(newGroup.distributionLength).to.equal(distributionLength);
+        expect(newGroup.initialRelease).to.equal(initialRelease);
     })
 
-    it("Prevents adding a group with distribution amount higher than contract balance", async function () {
-        const name = "Not a very nice group";
-        const distributionAmount = toTokens(400,decimals);
-        const distributionStartOffset = 1000;
-        const distributionLength = 20000;
+    it("Add a group with Initial release", async function () {
+        const name = "Group with offset";
+        const distributionAmount = toTokens("6",decimals);
+        const distributionStartOffset = 0;
+        const distributionLength = 2000;
+        const groupId = 2;
+        const initialRelease = toTokens("0.1", decimals);
 
         const tx = vestingContract._setGroup(
             name,
             distributionAmount,
             distributionStartOffset,
-            distributionLength
+            distributionLength,
+            initialRelease
+        )
+        await hasEmittedEvent(
+            tx,
+            'GroupDataSet',
+            [
+                groupId,
+                name,
+                distributionAmount,
+                distributionStartOffset,
+                distributionLength,
+                initialRelease
+            ]
+        );
+
+        const newGroup = await vestingContract.groupsConfiguration(2);
+        expect(newGroup.name).to.equal(name);
+        expect(newGroup.distributionAmount).to.equal(distributionAmount);
+        expect(newGroup.distributionStartOffset).to.equal(distributionStartOffset);
+        expect(newGroup.distributionLength).to.equal(distributionLength);
+        expect(newGroup.initialRelease).to.equal(initialRelease);
+    })
+
+    it("Prevents adding a group with distribution amount higher than contract balance", async function () {
+        const name = "Not a very nice group";
+        const distributionAmount = toTokens("400",decimals);
+        const distributionStartOffset = 1000;
+        const distributionLength = 20000;
+        const initialRelease = 0;
+
+        const tx = vestingContract._setGroup(
+            name,
+            distributionAmount,
+            distributionStartOffset,
+            distributionLength,
+            initialRelease
         )
         await expect(tx).to.be.revertedWith("Distribution amount too big!");
 
@@ -111,7 +157,7 @@ describe("Vesting Contract - vesting process tests", function () {
     it("Add user (addr1) to group without offset", async function () {
         const address = addr1.address;
         const groupId = 0;
-        const vestAmount = toTokens(50, decimals);
+        const vestAmount = toTokens("50", decimals);
 
         const tx = vestingContract._setUser(
             address,
@@ -140,7 +186,7 @@ describe("Vesting Contract - vesting process tests", function () {
     it("Add user (addr2) to group with offset", async function () {
         const address = addr2.address;
         const groupId = 1;
-        const vestAmount = toTokens(100, decimals);
+        const vestAmount = toTokens('100', decimals);
 
         const tx = vestingContract._setUser(
             address,
@@ -169,7 +215,7 @@ describe("Vesting Contract - vesting process tests", function () {
     it("Add user (addr3) to group with offset", async function () {
         const address = addr3.address;
         const groupId = 1;
-        const vestAmount = toTokens(5, decimals);
+        const vestAmount = toTokens('5', decimals);
 
         const tx = vestingContract._setUser(
             address,
@@ -192,13 +238,42 @@ describe("Vesting Contract - vesting process tests", function () {
         expect(user.withdrawnAmount).to.equal("0");
 
         const group = await vestingContract.groupsConfiguration(groupId);
-        expect(group.vestedAmount).to.equal(toTokens(105, decimals));
+        expect(group.vestedAmount).to.equal(toTokens('105', decimals));
+    })
+
+    it("Add user (addr4) to group with initial release", async function () {
+        const address = addr4.address;
+        const groupId = 2;
+        const vestAmount = toTokens('6', decimals);
+
+        const tx = vestingContract._setUser(
+            address,
+            groupId,
+            vestAmount
+        )
+        await hasEmittedEvent(
+            tx,
+            'UserDataSet',
+            [
+                address,
+                groupId,
+                vestAmount
+            ]
+        );
+
+        const user = await vestingContract.userConfiguration(address);
+        expect(user.groupId).to.equal(groupId);
+        expect(user.vestAmount).to.equal(vestAmount);
+        expect(user.withdrawnAmount).to.equal("0");
+
+        const group = await vestingContract.groupsConfiguration(groupId);
+        expect(group.vestedAmount).to.equal(toTokens('6', decimals));
     })
 
     it("Should update user vesting amount (addr3) properly", async function () {
         const address = addr3.address;
         const groupId = 1;
-        const vestAmount = toTokens(15, decimals);
+        const vestAmount = toTokens('15', decimals);
 
         const tx = vestingContract._setUser(
             address,
@@ -221,13 +296,13 @@ describe("Vesting Contract - vesting process tests", function () {
         expect(user.withdrawnAmount).to.equal("0");
 
         const group = await vestingContract.groupsConfiguration(groupId);
-        expect(group.vestedAmount).to.equal(toTokens(115, decimals));
+        expect(group.vestedAmount).to.equal(toTokens('115', decimals));
     })
 
     it("Should properly move user to another group (addr3)", async function () {
         const address = addr3.address;
         const groupId = 0;
-        const vestAmount = toTokens(15, decimals);
+        const vestAmount = toTokens('15', decimals);
 
         const tx = vestingContract._setUser(
             address,
@@ -251,16 +326,16 @@ describe("Vesting Contract - vesting process tests", function () {
 
         // check group vesting amount for new group
         const group0 = await vestingContract.groupsConfiguration(groupId);
-        expect(group0.vestedAmount).to.equal(toTokens(65, decimals));
+        expect(group0.vestedAmount).to.equal(toTokens('65', decimals));
         // check group vesting amount for old group
         const group1 = await vestingContract.groupsConfiguration(1);
-        expect(group1.vestedAmount).to.equal(toTokens(100, decimals));
+        expect(group1.vestedAmount).to.equal(toTokens('100', decimals));
     })
 
     it("Prevents adding user to a group with vesting amount higher than group distribution amount", async function () {
         const address = addr4.address;
         const groupId = 0;
-        const vestAmount = toTokens(250, decimals);
+        const vestAmount = toTokens('250', decimals);
 
         const tx = vestingContract._setUser(
             address,
@@ -272,8 +347,8 @@ describe("Vesting Contract - vesting process tests", function () {
 
     it("Prevents adding user to a non-existent group", async function () {
         const address = addr4.address;
-        const groupId = 2;
-        const vestAmount = toTokens(250, decimals);
+        const groupId = 3;
+        const vestAmount = toTokens('250', decimals);
 
         const tx = vestingContract._setUser(
             address,
@@ -290,7 +365,7 @@ describe("Vesting Contract - vesting process tests", function () {
         await vestingContract._startVesting(0, owner.address);
         const balanceAfter = await colonyGovernanceToken.balanceOf(owner.address);
 
-        expect(balanceAfter).to.equal(toTokens(335, decimals));
+        expect(balanceAfter).to.equal(toTokens('329', decimals));
     })
 
     it("Non-existent user has a claim = 0", async function () {
@@ -304,6 +379,28 @@ describe("Vesting Contract - vesting process tests", function () {
 
         const addr2AvailableClaim = await vestingContract.checkClaim(addr2.address);
         expect(addr2AvailableClaim).to.equal(0);
+    })
+
+    it("Checks the initial claim (Addr4)", async function () {
+        const addr4AvailableClaim = await vestingContract.checkClaim(addr4.address);
+        expect(addr4AvailableClaim).to.equal(toTokens('0.6', decimals));
+    })
+
+    it("Perform claims for addr4 with initial claim", async function () {
+        const addr4ClaimTx1 = vestingContract.connect(addr4).claim(toTokens("0.6", decimals));
+        await hasEmittedEvent(
+            addr4ClaimTx1,
+            'TokensClaimed',
+            [
+                addr4.address,
+                2,
+                toTokens("0.6",decimals)
+            ]
+        );
+        const addr4AvailableClaim = await vestingContract.checkClaim(addr4.address);
+        expect(addr4AvailableClaim).to.be.closeTo(toTokens("0", decimals), toTokens("0.1", decimals));
+        const balance1 = await colonyGovernanceToken.balanceOf(addr4.address);
+        expect(balance1).to.equal(toTokens('0.6',decimals));
     })
 
     it("Check claim after 500s for addr1 and addr2", async function () {
@@ -325,7 +422,7 @@ describe("Vesting Contract - vesting process tests", function () {
 
         // vesting for addr2 has not started yet
         const addr2AvailableClaim = await vestingContract.checkClaim(addr2.address);
-        expect(addr2AvailableClaim).to.equal(0);
+        expect(addr2AvailableClaim).to.be.closeTo(toTokens('0', decimals), toTokens('0.1', decimals));
     })
 
     it("Check claim after 1500s for addr1 and addr2", async function () {
@@ -369,8 +466,23 @@ describe("Vesting Contract - vesting process tests", function () {
         const addr1AvailableClaim2 = await vestingContract.checkClaim(addr1.address);
         expect(addr1AvailableClaim2).to.be.closeTo(toTokens("4.5", decimals), toTokens("0.1", decimals));
         const balance2 = await colonyGovernanceToken.balanceOf(addr1.address);
-        expect(balance2).to.equal(toTokens(3,decimals));
+        expect(balance2).to.equal(toTokens('3',decimals));
 
+    })
+
+    it("Perform another claim for addr4 with initial claim", async function () {
+        const addr4ClaimTx1 = vestingContract.connect(addr4).claim(toTokens("1", decimals));
+        await hasEmittedEvent(
+            addr4ClaimTx1,
+            'TokensClaimed',
+            [
+                addr4.address,
+                2,
+                toTokens("1",decimals)
+            ]
+        );
+        const balance1 = await colonyGovernanceToken.balanceOf(addr4.address);
+        expect(balance1).to.equal(toTokens('1.6',decimals));
     })
 
     it("Prevents claiming more than available", async function () {
@@ -400,7 +512,7 @@ describe("Vesting Contract - vesting process tests", function () {
 
         await vestingContract.connect(addr1).claim(toTokens("1",decimals));
         const balance = await colonyGovernanceToken.balanceOf(addr1.address);
-        expect(balance).to.equal(toTokens(4,decimals));
+        expect(balance).to.equal(toTokens('4',decimals));
     })
 
     it("Allows claiming no more than maximum configured claim (100% of vesting funds)", async function () {
@@ -426,7 +538,7 @@ describe("Vesting Contract - vesting process tests", function () {
         await expect(tx2).to.be.revertedWith("Claim amount too high!");
 
         const balance = await colonyGovernanceToken.balanceOf(addr2.address);
-        expect(balance).to.equal(toTokens(100,decimals));
+        expect(balance).to.equal(toTokens('100',decimals));
     })
 
 })
@@ -446,15 +558,17 @@ describe("Additional Vesting Contract tests", function () {
 
     it("Check if all amount of tokens is returned when no vesting is configured", async function () {
         const name = "Test group";
-        const distributionAmount = toTokens(150,decimals);
+        const distributionAmount = toTokens('150',decimals);
         const distributionStartOffset = 0;
         const distributionLength = 10000;
+        const initialRelease = 0;
 
         await vestingContract._setGroup(
             name,
             distributionAmount,
             distributionStartOffset,
-            distributionLength
+            distributionLength,
+            initialRelease
         )
 
         await vestingContract._startVesting(0, addr4.address);
