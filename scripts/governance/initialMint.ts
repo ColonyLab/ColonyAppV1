@@ -1,12 +1,13 @@
-const { toTokens } = require("../../test/utils/testHelpers")
-const { bignumber } = require("mathjs")
+import { ethers } from "hardhat";
+import { toTokens } from '../../test/utils/testHelpers'
+import { bignumber } from "mathjs"
 
 const data = require("../../data/governance-staking-vesting-deployment/test-wallets.json")      // <---- define here file with data to import
 
-const governanceTokenAddress = '0x66ac5b974fF2941c1de7A33232e8A2bb069C71De'
-const vestingContractAddress = '0xE10EC8d4dBaF84847301351f31FdEf9c37E401aa'
+const governanceTokenAddress = ''
+const vestingContractAddress = ''
 
-async function main() {
+async function main(): Promise<void> {
 
     const directMintAddresses = []
     const directMintValues = []

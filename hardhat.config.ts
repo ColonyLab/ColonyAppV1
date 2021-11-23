@@ -1,12 +1,17 @@
 /**
  * @type import('hardhat/config').HardhatUserConfig
  */
-require('dotenv').config()
-require("hardhat-gas-reporter");
-require('hardhat-contract-sizer');
-require("@nomiclabs/hardhat-waffle");
+import dotenv from 'dotenv';
+import "hardhat-gas-reporter";
+import "hardhat-contract-sizer";
+import "@nomiclabs/hardhat-waffle";
 
-module.exports = {
+dotenv.config()
+
+const reportGas = process.env.REPORT_GAS?.toLowerCase() === 'true'
+const reportSize = process.env.REPORT_SIZE?.toLowerCase() === 'true'
+
+export default {
   solidity: {
     compilers: [
       {
@@ -54,12 +59,12 @@ module.exports = {
   gasReporter: {
     currency: 'USD',
     coinmarketcap: process.env.COINMARKETCAP_KEY,
-    enabled: (process.env.REPORT_GAS) ? true : false
+    enabled: reportGas
   },
 
   contractSizer: {
     alphaSort: true,
-    runOnCompile: true,
+    runOnCompile: reportSize,
     disambiguatePaths: false,
   }
 };
