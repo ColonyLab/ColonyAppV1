@@ -11,12 +11,15 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 /**
  *  @title Vesting contract
  ***********************************
- *  @notice Distributes tokens according to specified distribution rules.
+ *  @notice Makes tokens available to claim for addresses according to specified distribution rules.
  *
  *  Vesting rules are defined within user groups. Users are added to a group with vesting amount that is to be
  *  distributed according to group rules.
+ *  Contract has to have balance prior to make groups possible to be set. Groups have to be set before users are
+ *  possible to be set.
  *
  *  The vesting process can be paused and unpaused any time.
+ *  The vesting process can be closed permanently and all remaining tokens can be withdrawn from the contract.
  */
 contract Vesting is Ownable, Pausable {
 
@@ -90,10 +93,17 @@ contract Vesting is Ownable, Pausable {
      ********************/
 
     /**
+     *  @notice claims all available tokens
+     */
+    function claimAll() external afterVestingStarted beforeVestingClosed whenNotPaused {
+        claim(checkClaim(msg.sender));
+    }
+
+    /**
      *  @notice transfers the specified amount of tokens to the claimer. Reverts when the amount exceeds available.
      *  @param amount - the amount of tokens to be claimed
      */
-    function claim(uint amount) external afterVestingStarted beforeVestingClosed whenNotPaused {
+    function claim(uint amount) public afterVestingStarted beforeVestingClosed whenNotPaused {
         require(checkClaim(msg.sender) >= amount, "Claim amount too high!");
 
         userConfiguration[msg.sender].withdrawnAmount = userConfiguration[msg.sender].withdrawnAmount + amount;
@@ -112,7 +122,7 @@ contract Vesting is Ownable, Pausable {
         GroupData storage groupData = groupsConfiguration[userData.groupId];
 
         uint initialReleaseShare;
-
+        // if vesting started check the initial release amount
         if (vestingStarted && vestingStartTimestamp <= block.timestamp) {
             initialReleaseShare = groupData.initialRelease * userData.vestAmount / 1e18;
         }
@@ -121,7 +131,6 @@ contract Vesting is Ownable, Pausable {
         if (block.timestamp <= (vestingStartTimestamp + groupData.distributionStartOffset)) {
             return initialReleaseShare - userData.withdrawnAmount;
         }
-
 
         // return all available amount of unclaimed tokens if the vesting ended
         if ((block.timestamp - (vestingStartTimestamp + groupData.distributionStartOffset)) >= groupData.distributionLength ) {

@@ -515,12 +515,12 @@ describe("Vesting Contract - main vesting process tests", function () {
         expect(balance).to.equal(toTokens('4',decimals));
     })
 
-    it("Allows claiming no more than maximum configured claim (100% of vesting funds)", async function () {
+    it("Claim all. Allows claiming no more than maximum configured claim (100% of vesting funds).", async function () {
         await increaseTime(50000);
         const addr2AvailableClaim = await vestingContract.checkClaim(addr2.address);
         expect(addr2AvailableClaim).to.equal(toTokens("100", decimals));
 
-        const tx = vestingContract.connect(addr2).claim(toTokens("100",decimals));
+        const tx = vestingContract.connect(addr2).claimAll();
         await hasEmittedEvent(
             tx,
             'TokensClaimed',
