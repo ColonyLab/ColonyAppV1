@@ -4,7 +4,7 @@
         "total_amount": "87510000",
         "offset": "172800",
         "period": "43200",
-        "initial_unlock": "10"
+        "initial_unlock": "0.1"
     },
     {
         "name": "seed",
@@ -32,6 +32,6 @@
         "total_amount": "10421666.67",
         "offset": "7200",
         "period": "21600",
-        "initial_unlock": "10"
+        "initial_unlock": "0.1"
     }
 ]
