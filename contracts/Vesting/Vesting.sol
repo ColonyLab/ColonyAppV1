@@ -275,14 +275,14 @@ contract Vesting is Ownable, Pausable {
      *  @notice Pauses the ability to claim tokens from vesting contract
      */
     function _pauseVesting() external onlyOwner afterVestingStarted whenNotPaused {
-        super._pause();
+        _pause();
     }
 
     /**
      *  @notice Resumes the ability to claim tokens from vesting contract
      */
     function _unpauseVesting() external onlyOwner afterVestingStarted whenPaused {
-        super._unpause();
+        _unpause();
     }
 
     /**
