@@ -1,6 +1,6 @@
-import { ethers } from "hardhat";
+import { ethers } from 'hardhat';
 import { toTokens } from '../../test/utils/testHelpers'
-import { bignumber } from "mathjs"
+import { bignumber } from 'mathjs'
 
 const data = require("../../data/governance-staking-vesting-deployment/test-wallets.json")      // <---- define here file with data to import
 
@@ -37,7 +37,7 @@ async function main(): Promise<void> {
     directMintValues.push(toTokens(totalAmountToVest.toString(), 18))
 
     const ColonyGovernanceToken = await ethers.getContractFactory("ColonyGovernanceToken")
-    const colony = await ColonyGovernanceToken.attach(governanceTokenAddress)
+    const colony =  ColonyGovernanceToken.attach(governanceTokenAddress)
 
     await colony.initialMint(directMintAddresses, directMintValues)
 

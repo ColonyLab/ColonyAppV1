@@ -29,7 +29,7 @@ export async function  setupVestingContract(governanceTokenAddress: string, vest
     return vestingContractInstance
 }
 
-export async function  setupStakingContract(governanceTokenAddress: String, minTreshold: string | number, minPeriod: string | number): Promise<Contract> {
+export async function  setupStakingContract(governanceTokenAddress: string, minTreshold: string | number, minPeriod: string | number): Promise<Contract> {
     const ColonyStakingContract = await ethers.getContractFactory("Staking")
     const staking = await ColonyStakingContract.deploy(governanceTokenAddress, minTreshold, minPeriod)
     await staking.deployed()

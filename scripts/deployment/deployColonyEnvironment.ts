@@ -9,7 +9,7 @@ async function main(): Promise<void> {
     const colonyGovernanceToken = await setupGovernanceToken();
     console.log("[ DEPLOYMENT ] Governance Token Contract : ", colonyGovernanceToken.address);
 
-    const colonyVestingContract = await setupVestingContract(colonyGovernanceToken.address);
+    const colonyVestingContract = await setupVestingContract(colonyGovernanceToken.address, 180 * 24 * 60 * 60);
     console.log("[ DEPLOYMENT ] Vesting Contract          : ", colonyVestingContract.address);
 
     const colonyStakingContract = await setupStakingContract(colonyGovernanceToken.address, toTokens('50', 18), 20 * 24 * 60 * 60);

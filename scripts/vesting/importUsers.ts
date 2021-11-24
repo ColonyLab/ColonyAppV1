@@ -1,15 +1,15 @@
 import { ethers } from "hardhat";
 import { toTokens } from '../../test/utils/testHelpers'
 
-const data = require("../../data/governance-staking-vesting-deployment/test-wallets.json")      // <---- define here file with data to import
+import data from "../../data/governance-staking-vesting-deployment/test-wallets.json";      // <---- define here file with data to import
 
 const vestingContractAddress = ''
 
 async function main(): Promise<void> {
     const Vesting = await ethers.getContractFactory("Vesting")
-    const vesting = await Vesting.attach(vestingContractAddress)
+    const vesting = Vesting.attach(vestingContractAddress)
 
-    const groupsData = []
+    const groupsData: {[key: string]: string} = {}
 
     console.log(`[Import Wallets] Loading groups data from contract...`)
     const groupEvents = await vesting.queryFilter(vesting.filters.GroupDataSet())

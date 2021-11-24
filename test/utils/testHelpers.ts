@@ -1,3 +1,4 @@
+import { BigNumberish } from "@ethersproject/bignumber";
 import { ContractTransaction, Event } from "@ethersproject/contracts";
 import { ethers } from "hardhat";
 
@@ -15,11 +16,11 @@ export function fromWei (x: string): string {
     return ethers.utils.formatEther(x)
 }
 
-export function toTokens(value: string | number, decimals = 18): string {
+export function toTokens(value: BigNumberish, decimals = 18): string {
     return ethers.utils.parseUnits(value.toString(), decimals).toString()
 }
 
-export function fromTokens(value: string, decimals = 18, round = false): string {
+export function fromTokens(value: BigNumberish, decimals = 18, round = false): string {
     let result = ethers.utils.formatUnits(value.toString(), decimals)
     if(round){
         result = mathjs.round(result, 2)

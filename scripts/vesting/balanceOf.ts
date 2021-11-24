@@ -6,7 +6,7 @@ const vestingContractAddress = ''
 
 async function main(): Promise<void> {
     const ColonyGovernanceToken = await ethers.getContractFactory("ColonyGovernanceToken")
-    const colony = await ColonyGovernanceToken.attach(governanceTokenAddress)
+    const colony = ColonyGovernanceToken.attach(governanceTokenAddress)
     
     const vestingBalance = await colony.balanceOf(vestingContractAddress)
     console.log(`Balance of vesting contract: ${fromTokens(vestingBalance.toString(), 18)} tokens`)
