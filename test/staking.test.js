@@ -1,4 +1,5 @@
 const { expect } = require("chai")
+const { BigNumber } = require("@ethersproject/bignumber");
 const { ethers } = require("hardhat")
 const { setupGovernanceToken, setupStakingContract } = require("../scripts/setupContracts")
 const { toTokens, fromTokens, increaseTime, hasEmittedEvent } = require("./utils/testHelpers")
@@ -549,5 +550,62 @@ describe("Colony Staking", function () {
     // hits and stay with stakesLimit
     expect(await colonyStaking.connect(addr1).getAccountRealDepositLength(addr1.address)).to.equal(stakesLimit)
     expect(await stakedBalanceOf(addr1)).to.equal(toTokens(expectedBalance))
+  })
+
+  it("timeRemainingAuthorization - not authorized", async function () {
+    expect(await colonyStaking.timeRemainingAuthorization(addr1.address)).to.eql([false, BigNumber.from(0)])
+  })
+
+  it("timeRemainingAuthorization - authorized", async function () {
+    const epsilon = 20
+
+    await stake(addr1, minStake)
+    let remainTuple = await colonyStaking.timeRemainingAuthorization(addr1.address)
+    expect(remainTuple[0]).to.equal(true)
+    expect(remainTuple[1]).to.be.above(defaultAuthPeriod-epsilon).and.to.be.below(defaultAuthPeriod+epsilon)
+
+    await increaseTime(defaultAuthPeriod)
+    expect(await colonyStaking.timeRemainingAuthorization(addr1.address)).to.eql([true, BigNumber.from(0)])
+
+  })
+
+  it("timeRemainingAuthorization - change auth values", async function () {
+    const epsilon = 20
+
+    await stake(addr1, minStake)
+    await increaseTime(defaultAuthPeriod)
+
+    const periodIncrease = 100000
+    await colonyStaking.connect(owner).setAuthorizedStakePeriod(defaultAuthPeriod+100000)
+
+    remainTuple = await colonyStaking.timeRemainingAuthorization(addr1.address)
+    expect(remainTuple[0]).to.equal(true)
+    // defaultAuthPeriod already pass
+    expect(remainTuple[1]).to.be.above(periodIncrease-epsilon).and.to.be.below(periodIncrease+epsilon)
+
+    await colonyStaking.connect(owner).setAuthorizedStakeAmount(toTokens(2*minStake))
+    expect(await colonyStaking.timeRemainingAuthorization(addr1.address)).to.eql([false, BigNumber.from(0)])
+  })
+
+  it("timeRemainingAuthorization - multiple stakes", async function () {
+    const epsilon = 20
+
+    const rounds = 10;
+    for (let i = 0; i < 10; i++) {
+      await increaseTime(defaultAuthPeriod/rounds) // 1/10 of auth period
+      await stake(addr1, minStake)
+    }
+
+    // decrease period
+    const halfOfthePeriod = defaultAuthPeriod/2
+    await colonyStaking.connect(owner).setAuthorizedStakePeriod(halfOfthePeriod)
+    // increase auth amount to all stakes
+    await colonyStaking.connect(owner).setAuthorizedStakeAmount(toTokens(minStake*rounds))
+
+
+    remainTuple = await colonyStaking.timeRemainingAuthorization(addr1.address)
+    expect(remainTuple[0]).to.equal(true)
+    // defaultAuthPeriod already pass
+    expect(remainTuple[1]).to.be.above(halfOfthePeriod-epsilon).and.to.be.below(halfOfthePeriod+epsilon)
   })
 })
