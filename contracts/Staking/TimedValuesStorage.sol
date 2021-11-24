@@ -92,6 +92,29 @@ contract TimedValuesStorage is Ownable {
     }
 
     /**
+     * @dev time left in seconds for given minValue to be older than given maxTimestamp
+     * @notice time left depends on the youngest stake which is included to minValue
+     * @return boolean - is the account deposit sum enough to pass minValue?
+     * @return uint256 time in seconds, 0 if value is already older
+     */
+    function timeLeftToMeetRequirements(address account, uint256 minValue, uint256 maxTimestamp) external view returns (bool, uint256) {
+        uint256 enoughValue;
+
+        for (uint i = 0; i < realDepositsLength[account]; i++) {
+            enoughValue += deposits[account][i].value;
+
+            if (enoughValue >= minValue) {
+                if (maxTimestamp >= deposits[account][i].timestamp) {
+                    return (true, 0);
+                }
+
+                return (true, deposits[account][i].timestamp - maxTimestamp);
+            }
+        }
+        return (false, 0);
+    }
+
+    /**
      * @dev Helper, gets the last value
      * @return last account value
      */

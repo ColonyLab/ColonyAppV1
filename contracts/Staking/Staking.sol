@@ -89,12 +89,24 @@ contract Staking is Ownable, Pausable {
 
     /**
      * @dev check if account stake pass authorizedStakeAmount and authorizedStakePeriod
-     * @return boolean
+     * @return boolean - is the account authorized?
      */
     function isAccountAuthorized(address account) public view returns (bool) {
         // solhint-disable-next-line not-rely-on-time
         uint256 maxTimestamp = block.timestamp - authorizedStakePeriod;
         return stakeDeposits.isStoredLongEnough(account, authorizedStakeAmount, maxTimestamp);
+    }
+
+    /**
+     * @dev calculates the time in seconds which must elapse for the account to be authorized (to meet authorizedStakePeriod)
+     * @return boolean - will the account be authorized?
+     * false means that the account will not be authorized because of insufficient stake
+     * @return uint256 - estimated time in seconds
+     */
+    function timeRemainingAuthorization(address account) public view returns (bool, uint256) {
+        // solhint-disable-next-line not-rely-on-time
+        uint256 maxTimestamp = block.timestamp - authorizedStakePeriod;
+        return stakeDeposits.timeLeftToMeetRequirements(account, authorizedStakeAmount, maxTimestamp);
     }
 
     /**
