@@ -44,7 +44,7 @@ export default {
     },
     fuji: {
       url: process.env.FUJI_TESTNET_RPC_URL,
-      gasPrice: 225000000000,
+      gasPrice: 25000000000,
       chainId: 43113,
       accounts: {
         mnemonic: process.env.WALLET_MNEMONIC
@@ -52,7 +52,7 @@ export default {
     },
     mainnet: {
       url: process.env.AVAX_MAINNET_RPC_URL,
-      gasPrice: 225000000000,
+      gasPrice: 25000000000,
       chainId: 43114,
       accounts: []
     }
