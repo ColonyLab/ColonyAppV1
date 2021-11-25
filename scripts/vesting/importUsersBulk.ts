@@ -25,23 +25,22 @@ async function main (): Promise<void> {
     if (wallet.group !== 'direct_mint' && groupsData[wallet.group] === undefined) {
       throw Error(`Unrecognized group in import data file: ${wallet.group}`)
     }
+  }
+  for (const [index, wallet] of Object.entries(data)) {
+    if (wallet.group !== 'direct_mint') {
+      console.log(`[Import Wallets Bulk] Adding new wallet to the chunk: ${wallet.address}`)
 
-    for (const [index, wallet] of Object.entries(data)) {
-      if (wallet.group !== 'direct_mint') {
-        console.log(`[Import Wallets Bulk] Adding new wallet to the chunk: ${wallet.address}`)
+      vestingWallets.push(wallet.address)
+      vestingGroups.push(groupsData[wallet.group])
+      vestingAmouns.push(toTokens(wallet.amount, 18))
 
-        vestingWallets.push(wallet.address)
-        vestingGroups.push(groupsData[wallet.group])
-        vestingAmouns.push(toTokens(wallet.amount, 18))
-
-        if (vestingWallets.length % chunkSize === 0 || Number(index) === (data.length - 1)) {
-          const tx = await vesting._setUserBulk(vestingWallets, vestingGroups, vestingAmouns)
-          await tx.wait()
-          console.log(`[Import Wallets Bulk] Chunk has been added: ${tx.hash}\n`)
-          vestingWallets = []
-          vestingGroups = []
-          vestingAmouns = []
-        }
+      if (vestingWallets.length % chunkSize === 0 || Number(index) === (data.length - 1)) {
+        const tx = await vesting._setUserBulk(vestingWallets, vestingGroups, vestingAmouns)
+        await tx.wait()
+        console.log(`[Import Wallets Bulk] Chunk has been added: ${tx.hash}\n`)
+        vestingWallets = []
+        vestingGroups = []
+        vestingAmouns = []
       }
     }
   }
