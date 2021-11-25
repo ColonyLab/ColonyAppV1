@@ -82,7 +82,6 @@ contract Staking is Ownable, Pausable {
      * @return amount of account total authorized stake balance
      */
     function authStakedBalanceOf(address account) public view returns (uint256) {
-        // solhint-disable-next-line not-rely-on-time
         uint256 maxTimestamp = block.timestamp - authorizedStakePeriod;
         return stakeDeposits.valueStoredLongEnough(account, maxTimestamp);
     }
@@ -92,7 +91,6 @@ contract Staking is Ownable, Pausable {
      * @return boolean - is the account authorized?
      */
     function isAccountAuthorized(address account) public view returns (bool) {
-        // solhint-disable-next-line not-rely-on-time
         uint256 maxTimestamp = block.timestamp - authorizedStakePeriod;
         return stakeDeposits.isStoredLongEnough(account, authorizedStakeAmount, maxTimestamp);
     }

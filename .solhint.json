@@ -2,9 +2,10 @@
   "extends": "solhint:recommended",
   "plugins": [],
   "rules": {
-    "compiler-version": ["error","^0.8.9"],
+    "compiler-version": ["error", "^0.8.9"],
     "avoid-suicide": "error",
     "avoid-sha3": "warn",
-    "func-visibility": ["warn",{"ignoreConstructors":true}]
+    "func-visibility": ["warn", { "ignoreConstructors": true }],
+    "not-rely-on-time": "off"
   }
 }

@@ -19,6 +19,7 @@ stages:
   - setup
   - test
   - solhint_check
+  - eslint_check
 
 setup:
   stage: setup
@@ -45,5 +46,11 @@ test:
 solhint_check:
   stage: test
   script: npm run check
+  only:
+    - merge_requests
+
+eslint_check:
+  stage: test
+  script: npm run lint
   only:
     - merge_requests
