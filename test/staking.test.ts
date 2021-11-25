@@ -1,16 +1,19 @@
-const { expect } = require('chai')
-const { BigNumber } = require('@ethersproject/bignumber')
-const { ethers } = require('hardhat')
-const { setupGovernanceToken, setupStakingContract } = require('../scripts/setupContracts')
-const { toTokens, increaseTime } = require('./utils/testHelpers')
+import { Contract } from '@ethersproject/contracts'
+import { BigNumber } from '@ethersproject/bignumber'
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { expect } from 'chai'
+import { ethers } from 'hardhat'
+import { setupGovernanceToken, setupStakingContract } from '../scripts/setupContracts'
+import { toTokens, increaseTime } from './utils/testHelpers'
 
-let colonyGovernanceToken
-let colonyStaking
-let owner, addr1, addr2, publicSaleWallet, privateSaleWallet
-let defaultAuthPeriod
-let decimals
+let colonyGovernanceToken: Contract
+let colonyStaking: Contract
+let owner: SignerWithAddress, addr1: SignerWithAddress, addr2: SignerWithAddress
+let publicSaleWallet: SignerWithAddress, privateSaleWallet: SignerWithAddress
+let defaultAuthPeriod: number
+let decimals: number
 
-const stake = async (who, stakeAmount) => {
+async function stake (who: SignerWithAddress, stakeAmount: number|string): Promise<void> {
   const tokensAmount = toTokens(stakeAmount)
 
   // require allowance on token
@@ -20,7 +23,7 @@ const stake = async (who, stakeAmount) => {
   await colonyStaking.connect(who).stake(tokensAmount)
 }
 
-const stakeFor = async (sender, receiver, stakeAmount) => {
+async function stakeFor (sender: SignerWithAddress, receiver: SignerWithAddress, stakeAmount: number|string): Promise<void> {
   const tokensAmount = toTokens(stakeAmount)
 
   // require allowance on token
@@ -30,12 +33,12 @@ const stakeFor = async (sender, receiver, stakeAmount) => {
   await colonyStaking.connect(sender).stakeFor(receiver.address, tokensAmount)
 }
 
-const unstake = async (who, unstakeAmount) => {
+async function unstake (who: SignerWithAddress, unstakeAmount: number|string): Promise<void> {
   await colonyStaking.connect(who).unstake(toTokens(unstakeAmount))
 }
 
 // additional check if both mappings are in sync
-const stakedBalanceOf = async (who) => {
+async function stakedBalanceOf (who: SignerWithAddress): Promise<void> {
   const stake1 = await colonyStaking.stakedBalanceOf(who.address)
   const stake2 = await colonyStaking.recalculatedBalanceOf(who.address)
 
@@ -46,13 +49,13 @@ const stakedBalanceOf = async (who) => {
   return stake1
 }
 
-describe('Colony Staking', function () {
+describe('Colony Staking', function (): void {
   const stakeAmount = 34560
   const minStake = 50
   const initAmount = 1000000
   const defaultStakesLimit = 100
 
-  beforeEach(async function () {
+  beforeEach(async function (): Promise<void> {
     [owner, addr1, addr2, publicSaleWallet, privateSaleWallet] = await ethers.getSigners()
     colonyGovernanceToken = await setupGovernanceToken()
     decimals = await colonyGovernanceToken.decimals()
@@ -70,16 +73,16 @@ describe('Colony Staking', function () {
     defaultAuthPeriod = parseInt((await colonyStaking.authorizedStakePeriod()).toString())
   })
 
-  it('Stake 0', async function () {
+  it('Stake 0', async function (): Promise<void> {
     await expect(colonyStaking.connect(addr1).stake(0)).to.be.revertedWith('Staking: cannot stake 0')
   })
 
-  it('Stake - to small', async function () {
+  it('Stake - to small', async function (): Promise<void> {
     await colonyGovernanceToken.connect(addr1).approve(colonyStaking.address, 10)
     await expect(colonyStaking.connect(addr1).stake(10)).to.be.revertedWith('Staking: stake too small')
   })
 
-  it('Stake - small after reach min', async function () {
+  it('Stake - small after reach min', async function (): Promise<void> {
     const minAmount = await colonyStaking.authorizedStakeAmount()
 
     await colonyGovernanceToken.connect(addr1).approve(colonyStaking.address, minAmount)
@@ -90,12 +93,12 @@ describe('Colony Staking', function () {
     await colonyStaking.connect(addr1).stake(1)
   })
 
-  it('Stake missing allowance', async function () {
+  it('Stake missing allowance', async function (): Promise<void> {
     await expect(colonyStaking.connect(addr1).stake(stakeAmount))
       .to.be.revertedWith('ERC20: transfer amount exceeds allowance')
   })
 
-  it('Stake', async function () {
+  it('Stake', async function (): Promise<void> {
     await stake(addr1, stakeAmount)
 
     expect(await stakedBalanceOf(addr1)).to.equal(toTokens(stakeAmount))
@@ -105,7 +108,7 @@ describe('Colony Staking', function () {
     expect(await colonyGovernanceToken.balanceOf(addr1.address)).to.equal(expectedBalance)
   })
 
-  it('Total Stake', async function () {
+  it('Total Stake', async function (): Promise<void> {
     await stake(addr1, stakeAmount)
     await stake(publicSaleWallet, 2 * stakeAmount)
     await stake(privateSaleWallet, 7 * stakeAmount)
@@ -117,11 +120,11 @@ describe('Colony Staking', function () {
     expect(await colonyStaking.totalStaked()).to.equal(toTokens(10 * stakeAmount))
   })
 
-  it('Unstake 0', async function () {
+  it('Unstake 0', async function (): Promise<void> {
     await expect(colonyStaking.connect(addr1).unstake(0)).to.be.revertedWith('Staking: cannot unstake 0')
   })
 
-  it('Unstake exceeds', async function () {
+  it('Unstake exceeds', async function (): Promise<void> {
     await stake(addr1, stakeAmount)
     await stake(addr1, stakeAmount)
 
@@ -129,7 +132,7 @@ describe('Colony Staking', function () {
       .to.be.revertedWith('Staking: amount exceeds balance')
   })
 
-  it('Unstake all', async function () {
+  it('Unstake all', async function (): Promise<void> {
     await stake(addr1, stakeAmount)
 
     const staked = await stakedBalanceOf(addr1)
@@ -141,7 +144,7 @@ describe('Colony Staking', function () {
     expect(await colonyGovernanceToken.balanceOf(addr1.address)).to.equal(toTokens(initAmount))
   })
 
-  it('Stake again after unstake all', async function () {
+  it('Stake again after unstake all', async function (): Promise<void> {
     await stake(addr1, stakeAmount)
 
     const staked = await stakedBalanceOf(addr1)
@@ -154,7 +157,7 @@ describe('Colony Staking', function () {
     expect(await stakedBalanceOf(addr1)).to.equal(toTokens(2 * stakeAmount))
   })
 
-  it('Unstake partial', async function () {
+  it('Unstake partial', async function (): Promise<void> {
     const stakeAmount2 = 1000
     await stake(addr1, stakeAmount)
 
@@ -168,7 +171,7 @@ describe('Colony Staking', function () {
     expect(await colonyGovernanceToken.balanceOf(addr1.address)).to.equal(expectedBalance)
   })
 
-  it('StakeFor', async function () {
+  it('StakeFor', async function (): Promise<void> {
     await colonyGovernanceToken.connect(addr1).approve(colonyStaking.address, toTokens(minStake))
     await colonyStaking.connect(addr1).stakeFor(addr2.address, toTokens(minStake))
 
@@ -183,7 +186,7 @@ describe('Colony Staking', function () {
     expect(await colonyGovernanceToken.balanceOf(addr2.address)).to.equal(toTokens(minStake))
   })
 
-  it('Multiple stake / unstake', async function () {
+  it('Multiple stake / unstake', async function (): Promise<void> {
     const stake1 = minStake
     const stake2 = 60
     const stake3 = 1000
@@ -211,7 +214,7 @@ describe('Colony Staking', function () {
     expect(await colonyGovernanceToken.balanceOf(addr1.address)).to.equal(expectedBalance)
   })
 
-  it('Multiple stake / unstake 2', async function () {
+  it('Multiple stake / unstake 2', async function (): Promise<void> {
     const rounds = 5
 
     for (let i = 0; i < rounds; i++) {
@@ -225,7 +228,7 @@ describe('Colony Staking', function () {
     expect(await colonyGovernanceToken.balanceOf(addr1.address)).to.equal(toTokens(initAmount))
   })
 
-  it('Multiple stake / unstake 3', async function () {
+  it('Multiple stake / unstake 3', async function (): Promise<void> {
     await colonyStaking.connect(owner).setMaxNumOfStakes(4)
 
     const rounds = 5
@@ -255,7 +258,7 @@ describe('Colony Staking', function () {
     expect(await colonyGovernanceToken.balanceOf(addr1.address)).to.equal(toTokens(initAmount - 4 * rounds * minStake))
   })
 
-  it('Unstake partial - gas limit', async function () {
+  it('Unstake partial - gas limit', async function (): Promise<void> {
     const rounds = 30
     let totalStaked = 0
 
@@ -272,7 +275,7 @@ describe('Colony Staking', function () {
     expect(await colonyGovernanceToken.balanceOf(addr1.address)).to.equal(toTokens(initAmount - totalStaked / 2))
   })
 
-  it('Unstake all - gas limit', async function () {
+  it('Unstake all - gas limit', async function (): Promise<void> {
     const rounds = 80
 
     for (let i = 0; i < rounds; i++) {
@@ -287,7 +290,7 @@ describe('Colony Staking', function () {
     expect(await colonyGovernanceToken.balanceOf(addr1.address)).to.equal(toTokens(initAmount))
   })
 
-  it('Initial Authorized', async function () {
+  it('Initial Authorized', async function (): Promise<void> {
     // auth stake 50CLY
     expect(await colonyStaking.authorizedStakeAmount()).to.be.equal(toTokens(minStake))
 
@@ -295,7 +298,7 @@ describe('Colony Staking', function () {
     expect(await colonyStaking.authorizedStakePeriod()).to.be.equal(20 * 86400)
   })
 
-  it('Authorized Stake', async function () {
+  it('Authorized Stake', async function (): Promise<void> {
     await stake(addr1, minStake)
     expect(await colonyStaking.authStakedBalanceOf(addr1.address)).to.be.equal(0) // 0 - needs to wait authPeriod
 
@@ -310,7 +313,7 @@ describe('Colony Staking', function () {
     expect(await colonyStaking.authStakedBalanceOf(addr1.address)).to.be.equal(toTokens(3 * minStake))
   })
 
-  it('Change Authorized Values', async function () {
+  it('Change Authorized Values', async function (): Promise<void> {
     await expect(colonyStaking.connect(addr1).setAuthorizedStakeAmount(toTokens(60)))
       .to.be.revertedWith('Ownable: caller is not the owner')
 
@@ -324,7 +327,7 @@ describe('Colony Staking', function () {
     expect(await colonyStaking.authorizedStakePeriod()).to.be.equal(25)
   })
 
-  it('Featured Account', async function () {
+  it('Featured Account', async function (): Promise<void> {
     expect(await colonyStaking.isAccountAuthorized(addr1.address)).to.be.equal(false)
 
     await stake(addr1, minStake)
@@ -334,7 +337,7 @@ describe('Colony Staking', function () {
     expect(await colonyStaking.isAccountAuthorized(addr1.address)).to.be.equal(true)
   })
 
-  it('Featured Account - LIFO', async function () {
+  it('Featured Account - LIFO', async function (): Promise<void> {
     await stake(addr1, minStake)
 
     await increaseTime(defaultAuthPeriod)
@@ -345,7 +348,7 @@ describe('Colony Staking', function () {
     expect(await stakedBalanceOf(addr1)).to.equal(toTokens(3 * minStake))
   })
 
-  it('Featured Account - Change Auth Values', async function () {
+  it('Featured Account - Change Auth Values', async function (): Promise<void> {
     await stake(addr1, minStake)
     await increaseTime(defaultAuthPeriod)
     expect(await colonyStaking.isAccountAuthorized(addr1.address)).to.be.equal(true)
@@ -366,7 +369,7 @@ describe('Colony Staking', function () {
     expect(await colonyStaking.isAccountAuthorized(addr1.address)).to.be.equal(true)
   })
 
-  it('Check Pausable', async function () {
+  it('Check Pausable', async function (): Promise<void> {
     await stake(addr1, minStake)
 
     expect(await colonyStaking.paused()).to.be.equal(false)
@@ -385,7 +388,7 @@ describe('Colony Staking', function () {
     await unstake(addr1, minStake) // ok
   })
 
-  it('MaxStakes: Change max number of stakes', async function () {
+  it('MaxStakes: Change max number of stakes', async function (): Promise<void> {
     expect(await colonyStaking.connect(owner).getMaxNumOfStakes()).to.be.equal(100)
     await colonyStaking.connect(owner).setMaxNumOfStakes(4)
 
@@ -393,7 +396,7 @@ describe('Colony Staking', function () {
     expect(colonyStaking.connect(owner).setMaxNumOfStakes(0)).to.be.revertedWith('should have at least one value')
   })
 
-  it('MaxStakes: realLen == [].len AND realLen < max_stakes', async function () {
+  it('MaxStakes: realLen == [].len AND realLen < max_stakes', async function (): Promise<void> {
     const rounds = 3
     for (let i = 0; i < rounds; i++) {
       await stake(addr1, minStake)
@@ -406,7 +409,7 @@ describe('Colony Staking', function () {
     expect(await stakedBalanceOf(addr1)).to.equal(toTokens(rounds * minStake))
   })
 
-  it('MaxStakes: realLen == [].len AND realLen == max_stakes', async function () {
+  it('MaxStakes: realLen == [].len AND realLen == max_stakes', async function (): Promise<void> {
     const stakesLimit = 3
     await colonyStaking.connect(owner).setMaxNumOfStakes(stakesLimit)
     expect(await colonyStaking.getMaxNumOfStakes()).to.equal(stakesLimit)
@@ -430,7 +433,7 @@ describe('Colony Staking', function () {
     expect(await stakedBalanceOf(addr1)).to.equal(toTokens((rounds + 1) * minStake))
   })
 
-  it('MaxStakes: realLen == [].len AND realLen > max_stakes', async function () {
+  it('MaxStakes: realLen == [].len AND realLen > max_stakes', async function (): Promise<void> {
     const rounds = 5
     for (let i = 0; i < rounds; i++) {
       await stake(addr1, minStake)
@@ -455,7 +458,7 @@ describe('Colony Staking', function () {
     expect(await stakedBalanceOf(addr1)).to.equal(toTokens((rounds + 1) * minStake))
   })
 
-  it('MaxStakes: realLen != [].len AND realLen < max_stakes', async function () {
+  it('MaxStakes: realLen != [].len AND realLen < max_stakes', async function (): Promise<void> {
     // default stakes limit
     expect(await colonyStaking.getMaxNumOfStakes()).to.equal(defaultStakesLimit)
 
@@ -479,7 +482,7 @@ describe('Colony Staking', function () {
     expect(await stakedBalanceOf(addr1)).to.equal(toTokens((rounds - 2 + 1) * minStake))
   })
 
-  it('MaxStakes: realLen != [].len AND realLen == max_stakes', async function () {
+  it('MaxStakes: realLen != [].len AND realLen == max_stakes', async function (): Promise<void> {
     const rounds = 5
     for (let i = 0; i < rounds; i++) {
       await stake(addr1, minStake)
@@ -504,7 +507,7 @@ describe('Colony Staking', function () {
     expect(await stakedBalanceOf(addr1)).to.equal(toTokens(rounds * minStake))
   })
 
-  it('MaxStakes: realLen != [].len AND realLen > max_stakes', async function () {
+  it('MaxStakes: realLen != [].len AND realLen > max_stakes', async function (): Promise<void> {
     const rounds = 7
     for (let i = 0; i < rounds; i++) {
       await stake(addr1, minStake)
@@ -551,11 +554,11 @@ describe('Colony Staking', function () {
     expect(await stakedBalanceOf(addr1)).to.equal(toTokens(expectedBalance))
   })
 
-  it('timeRemainingAuthorization - not authorized', async function () {
+  it('timeRemainingAuthorization - not authorized', async function (): Promise<void> {
     expect(await colonyStaking.timeRemainingAuthorization(addr1.address)).to.eql([false, BigNumber.from(0)])
   })
 
-  it('timeRemainingAuthorization - authorized', async function () {
+  it('timeRemainingAuthorization - authorized', async function (): Promise<void> {
     const epsilon = 20
 
     await stake(addr1, minStake)
@@ -567,7 +570,7 @@ describe('Colony Staking', function () {
     expect(await colonyStaking.timeRemainingAuthorization(addr1.address)).to.eql([true, BigNumber.from(0)])
   })
 
-  it('timeRemainingAuthorization - change auth values', async function () {
+  it('timeRemainingAuthorization - change auth values', async function (): Promise<void> {
     const epsilon = 20
 
     await stake(addr1, minStake)
@@ -585,7 +588,7 @@ describe('Colony Staking', function () {
     expect(await colonyStaking.timeRemainingAuthorization(addr1.address)).to.eql([false, BigNumber.from(0)])
   })
 
-  it('timeRemainingAuthorization - multiple stakes', async function () {
+  it('timeRemainingAuthorization - multiple stakes', async function (): Promise<void> {
     const epsilon = 20
 
     const rounds = 10
