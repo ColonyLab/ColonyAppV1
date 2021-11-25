@@ -78,6 +78,10 @@ export async function hasEmittedEvent (promise: Promise<ContractTransaction>, ex
   expect(eventNamePresent).to.equal(true, 'Transaction didn\'t emit "' + expectedEvent + '" event')
 }
 
+export function daysToSeconds (days: number): number {
+  return days * time.d
+}
+
 export const time = {
   s: 1,
   m: 60,
