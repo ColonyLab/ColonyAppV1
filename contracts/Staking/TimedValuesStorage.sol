@@ -161,7 +161,6 @@ contract TimedValuesStorage is Ownable {
 
         TimedValue memory timedValue = TimedValue({
             value: value,
-            // solhint-disable-next-line not-rely-on-time
             timestamp: block.timestamp // used for a long period of time
         });
 
@@ -228,7 +227,6 @@ contract TimedValuesStorage is Ownable {
         uint256 lastIdx = realDepositsLength[account] - 1;
 
         deposits[account][lastIdx].value += increaseValue;
-        // solhint-disable-next-line not-rely-on-time
         deposits[account][lastIdx].timestamp = block.timestamp;
     }
 

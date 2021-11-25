@@ -1,9 +1,9 @@
 /**
  * @type import('hardhat/config').HardhatUserConfig
  */
-import dotenv from 'dotenv';
-import 'hardhat-gas-reporter';
-import 'hardhat-contract-sizer';
+import dotenv from 'dotenv'
+import 'hardhat-gas-reporter'
+import 'hardhat-contract-sizer'
 import '@typechain/hardhat'
 import '@nomiclabs/hardhat-ethers'
 import '@nomiclabs/hardhat-waffle'
@@ -17,7 +17,7 @@ export default {
   solidity: {
     compilers: [
       {
-        version: "0.8.9",
+        version: '0.8.9',
         settings: {
           optimizer: {
             enabled: true,
@@ -28,7 +28,7 @@ export default {
     ]
   },
 
-  defaultNetwork: "hardhat",
+  defaultNetwork: 'hardhat',
 
   networks: {
     hardhat: {
@@ -67,6 +67,6 @@ export default {
   contractSizer: {
     alphaSort: true,
     runOnCompile: reportSize,
-    disambiguatePaths: false,
+    disambiguatePaths: false
   }
-};
+}
