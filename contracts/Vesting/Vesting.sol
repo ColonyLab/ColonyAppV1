@@ -30,11 +30,12 @@ contract Vesting is Ownable, Pausable {
      *  PROPERTIES, DATA STRUCTS, EVENTS  *
      **************************************/
 
-    bool public vestingStarted;        // true when the vesting procedure has started
-    uint public vestingStartTimestamp; // the starting timestamp of vesting schedule
-    bool public vestingClosed;         // true when the admin reclaims the remaining tokens and ends vesting
-    uint public vestingCloseOffset;    // offset in seconds when the admin is allowed to close vesting after last group vesting ends
-    IERC20 public vestingToken;        // the address of an ERC20 token used for vesting
+    bool public vestingStarted;             // true when the vesting procedure has started
+    uint public vestingStartTimestamp;      // the starting timestamp of vesting schedule
+    bool public vestingScheduledForClosing; // true when the admin schedules vesting for closing
+    uint public vestingCloseOffset;         // offset in seconds when the admin is allowed to close vesting after last group vesting ends
+    uint public vestingCloseMargin;         // adds additional offset in s after closeVesting() how long users will still be able to claim tokens
+    IERC20 public vestingToken;             // the address of an ERC20 token used for vesting
 
     // holds user groups configuration and data
     GroupData[] public groupsConfiguration;
@@ -57,7 +58,7 @@ contract Vesting is Ownable, Pausable {
     }
 
     event VestingStarted();
-    event VestingClosed();
+    event VestingScheduledForClosing(uint margin);
     event UserDataSet(address user, uint groupId, uint vestAmount);
     event GroupDataSet(
         uint groupId,
@@ -68,20 +69,23 @@ contract Vesting is Ownable, Pausable {
         uint initialRelease
     );
     event TokensClaimed(address user, uint groupId, uint amount);
+    event TokensReclaimed(address initiator, address receiver, uint amount);
 
 
 
 
     /**
      *  @param vestingTokenAddress - the address of the token used for distribution
-     *  @param vestingClose        - offset in seconds when the contract can be closed after all groups vesting ends
+     *  @param closeOffset        - offset in seconds when the contract can be closed after all groups vesting ends
+     *  @param closeMargin        - additional offset after vesting is scheduled for closing
      */
-    constructor(address vestingTokenAddress, uint vestingClose) {
+    constructor(address vestingTokenAddress, uint closeOffset, uint closeMargin) {
         require(vestingTokenAddress != address(0), "Vesting token address invalid!");
         vestingToken = IERC20(vestingTokenAddress);
         vestingStarted = false;
-        vestingClosed = false;
-        vestingCloseOffset = vestingClose;
+        vestingScheduledForClosing = false;
+        vestingCloseOffset = closeOffset;
+        vestingCloseMargin = closeMargin;
     }
 
 
@@ -286,26 +290,33 @@ contract Vesting is Ownable, Pausable {
     }
 
     /**
-     *  @notice checks if a defined time has passed since ending of all groups vesting and closes the vesting
-     *  @param receiver - the address to which the contract balance is sent after vesting close
+     *  @notice checks if a defined time has passed since ending of all groups vesting and schedules the vesting for closing
+     *  If no time is specified in vestingCloseMargin the vesting is closed immediately
      */
-    function _closeVesting(address receiver) external onlyOwner afterVestingStarted beforeVestingClosed {
-        uint vestingEndTimestamp;
+    function _closeVesting() external onlyOwner afterVestingStarted beforeVestingClosed {
+        uint groupVestingEndTimestamp = _lastGroupDistributionFinishTimestamp();
+        require(groupVestingEndTimestamp + vestingCloseOffset < block.timestamp, "Cannot close vesting!");
+        vestingScheduledForClosing = true;
+        emit VestingScheduledForClosing(vestingCloseMargin);
+    }
+
+
+    /**
+     *  @notice calculates the ending timestamp of last group's distribution schedule
+     *  @return the last schedule end timestamp
+     */
+    function _lastGroupDistributionFinishTimestamp() internal view returns (uint) {
+        uint groupVestingEndTimestamp;
         for (uint i; i < groupsConfiguration.length; i++) {
             uint closeTimestamp =
-                vestingStartTimestamp
-                + groupsConfiguration[i].distributionStartOffset
-                + groupsConfiguration[i].distributionLength
-                + vestingCloseOffset;
-            if (closeTimestamp > vestingEndTimestamp) {
-                vestingEndTimestamp = closeTimestamp;
+            vestingStartTimestamp
+            + groupsConfiguration[i].distributionStartOffset
+            + groupsConfiguration[i].distributionLength;
+            if (closeTimestamp > groupVestingEndTimestamp) {
+                groupVestingEndTimestamp = closeTimestamp;
             }
         }
-        require(vestingEndTimestamp < block.timestamp, "Cannot end vesting!");
-        vestingClosed = true;
-        emit VestingClosed();
-
-        _reclaim(receiver);
+        return groupVestingEndTimestamp;
     }
 
     /**
@@ -314,7 +325,9 @@ contract Vesting is Ownable, Pausable {
      *  @param receiver - the address to which the contract balance is sent
      */
     function _reclaim(address receiver) public onlyOwner afterVestingClosed {
-        vestingToken.transfer(receiver, vestingToken.balanceOf(address(this)));
+        uint contractBalance = vestingToken.balanceOf(address(this));
+        vestingToken.transfer(receiver, contractBalance);
+        emit TokensReclaimed(msg.sender, receiver, contractBalance);
     }
 
 
@@ -333,11 +346,20 @@ contract Vesting is Ownable, Pausable {
         _;
     }
     modifier beforeVestingClosed {
-        require(!vestingClosed, "Vesting has been closed!");
+        require(
+            !vestingScheduledForClosing ||
+            (vestingScheduledForClosing &&
+            _lastGroupDistributionFinishTimestamp() + vestingCloseOffset + vestingCloseMargin > block.timestamp),
+            "Vesting has been closed!"
+        );
         _;
     }
     modifier afterVestingClosed {
-        require(vestingClosed, "Vesting has not been closed!");
+        require(
+            vestingScheduledForClosing &&
+            _lastGroupDistributionFinishTimestamp() + vestingCloseOffset + vestingCloseMargin <= block.timestamp,
+            "Vesting has been closed!"
+        );
         _;
     }
 }

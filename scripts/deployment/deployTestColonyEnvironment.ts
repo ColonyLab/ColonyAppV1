@@ -3,13 +3,13 @@
  */
 
  import { setupTestGovernanceToken, setupVestingContract, setupStakingContract } from "../setupContracts";
- import { toTokens } from '../../test/utils/testHelpers'
+ import { toTokens, time } from '../../test/utils/testHelpers'
  
 async function main(): Promise<void> {
     const colonyGovernanceToken = await setupTestGovernanceToken();
     console.log("[ DEPLOYMENT ] Governance Token Contract : ", colonyGovernanceToken.address);
 
-    const colonyVestingContract = await setupVestingContract(colonyGovernanceToken.address, 2 * 60 * 60);
+    const colonyVestingContract = await setupVestingContract(colonyGovernanceToken.address, 2 * time.h, 2 * time.d);
     console.log("[ DEPLOYMENT ] Vesting Contract          : ", colonyVestingContract.address);
 
     const colonyStakingContract = await setupStakingContract(colonyGovernanceToken.address, toTokens('50', 18), 5 * 60);
