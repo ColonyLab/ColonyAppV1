@@ -355,7 +355,6 @@ contract Vesting is Ownable, Pausable {
         _;
     }
     modifier afterVestingClosed {
-        console.log("Current timestamp on check: ", block.timestamp);
         require(
             vestingCloseTimestamp != 0
             && vestingCloseTimestamp <= block.timestamp,
