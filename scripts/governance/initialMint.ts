@@ -2,7 +2,8 @@ import { ethers } from 'hardhat'
 import { toTokens } from '../../test/utils/testHelpers'
 import { bignumber } from 'mathjs'
 
-const data = require('../../data/governance-staking-vesting-deployment/test-wallets.json') // <---- define here file with data to import
+import walletsData from '../../data/governance-staking-vesting-deployment/test-wallets.json' // <---- define here file with data to import
+import groupsData from '../../data/governance-staking-vesting-deployment/test-groups.json' // <---- define here file with data to import
 
 const governanceTokenAddress = ''
 const vestingContractAddress = ''
@@ -15,22 +16,28 @@ async function main (): Promise<void> {
 
   console.log('[Initial mint] Loading configuration file...')
 
-  for (const wallet of data) {
+  for (const wallet of walletsData) {
     if (wallet.group === 'direct_mint') {
       console.log(`[Initial mint] Address ${wallet.address} will receive directly ${wallet.amount} tokens`)
 
       directMintAddresses.push(wallet.address)
       directMintValues.push(toTokens(wallet.amount, 18))
-    } else {
-      totalAmountToVest = totalAmountToVest.add(wallet.amount)
     }
     totalAmountToMint = totalAmountToMint.add(wallet.amount)
   }
-  console.log(`[Initial mint] Address ${vestingContractAddress} will receive directly ${totalAmountToVest} tokens (Vesting contract)`)
-  console.log(`\n[Initial mint] Total tokens to mint: ${totalAmountToMint}`)
+
+  console.log('')
+  for (const group of groupsData) {
+    console.log(`[Initial mint] Group ${group.name} will receive vested ${group.total_amount} tokens`)
+
+    totalAmountToVest = totalAmountToVest.add(group.total_amount)
+    totalAmountToMint = totalAmountToMint.add(group.total_amount)
+  }
 
   directMintAddresses.push(vestingContractAddress)
   directMintValues.push(toTokens(totalAmountToVest.toString(), 18))
+
+  console.log(`\n[Initial mint] Total tokens to mint: ${totalAmountToMint} (this include ${totalAmountToVest} tokens for Vesting contract)`)
 
   const ColonyGovernanceToken = await ethers.getContractFactory('ColonyGovernanceToken')
   const colony = ColonyGovernanceToken.attach(governanceTokenAddress)
