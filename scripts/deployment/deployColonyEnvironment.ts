@@ -3,18 +3,19 @@
  */
 
 import { setupGovernanceToken, setupVestingContract, setupStakingContract } from '../setupContracts'
-import { daysToSeconds, toTokens } from '../../test/utils/testHelpers'
+import { time, toTokens } from '../../test/utils/testHelpers'
 
-const vestingCloseOffset = daysToSeconds(180)
+const vestingCloseOffset = time.daysToSeconds(180)
+const vestingCloseMargin = time.daysToSeconds(2)
 
 const stakingAuthTokenAmount = toTokens('50', 18)
-const stakingAuthTokenPeriod = daysToSeconds(20)
+const stakingAuthTokenPeriod = time.daysToSeconds(20)
 
 async function main (): Promise<void> {
   const colonyGovernanceToken = await setupGovernanceToken()
   console.log('[ DEPLOYMENT ] Governance Token Contract : ', colonyGovernanceToken.address)
 
-  const colonyVestingContract = await setupVestingContract(colonyGovernanceToken.address, vestingCloseOffset)
+  const colonyVestingContract = await setupVestingContract(colonyGovernanceToken.address, vestingCloseOffset, vestingCloseMargin)
   console.log('[ DEPLOYMENT ] Vesting Contract          : ', colonyVestingContract.address)
 
   const colonyStakingContract = await setupStakingContract(colonyGovernanceToken.address, stakingAuthTokenAmount, stakingAuthTokenPeriod)

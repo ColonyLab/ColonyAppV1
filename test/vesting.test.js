@@ -8,16 +8,17 @@ let owner, mockAddress, addr1, addr2, addr3, addr4
 let decimals
 
 describe('Vesting Contract - main vesting process tests', function () {
-  before(async function () {
-    [owner, mockAddress, addr1, addr2, addr3, addr4] = await ethers.getSigners()
-    colonyGovernanceToken = await setupGovernanceToken()
-    vestingContract = await setupVestingContract(colonyGovernanceToken.address, 0)
-    await colonyGovernanceToken.initialMint(
-      [mockAddress.address, vestingContract.address],
-      [toTokens('200', decimals), toTokens('500', decimals)]
-    )
-    decimals = parseInt((await colonyGovernanceToken.decimals()).toString())
-  })
+
+    before(async() => {
+        [owner, mockAddress, addr1, addr2, addr3, addr4] = await ethers.getSigners()
+        colonyGovernanceToken = await setupGovernanceToken();
+        vestingContract = await setupVestingContract(colonyGovernanceToken.address, 0, 0);
+        await colonyGovernanceToken.initialMint(
+            [mockAddress.address, vestingContract.address],
+            [toTokens('200', decimals), toTokens('500', decimals)]
+        );
+        decimals = parseInt((await colonyGovernanceToken.decimals()).toString());
+    })
 
   it('Disallow vesting start before conditions are met', async function () {
     const tx1 = vestingContract._startVesting(1214, owner.address)
@@ -543,7 +544,7 @@ describe('Vesting contract - return of tokens after vesting start', function () 
   before(async function () {
     [owner, mockAddress, addr1, addr2, addr3, addr4] = await ethers.getSigners()
     colonyGovernanceToken = await setupGovernanceToken()
-    vestingContract = await setupVestingContract(colonyGovernanceToken.address, 0)
+    vestingContract = await setupVestingContract(colonyGovernanceToken.address, 0, 0)
     await colonyGovernanceToken.initialMint(
       [mockAddress.address, vestingContract.address],
       [toTokens('200', decimals), toTokens('500', decimals)]
@@ -575,7 +576,7 @@ describe('Vesting contract - vesting closing operations', function () {
   before(async function () {
     [owner, mockAddress, addr1, addr2, addr3, addr4] = await ethers.getSigners()
     colonyGovernanceToken = await setupGovernanceToken()
-    vestingContract = await setupVestingContract(colonyGovernanceToken.address, 200)
+    vestingContract = await setupVestingContract(colonyGovernanceToken.address, 200, 70)
     await colonyGovernanceToken.initialMint(
       [mockAddress.address, vestingContract.address],
       [toTokens('200', decimals), toTokens('500', decimals)]
@@ -589,37 +590,59 @@ describe('Vesting contract - vesting closing operations', function () {
     await vestingContract._startVesting(0, addr4.address)
   })
 
-  it('time = 0s. Revert before group vesting starts', async function () {
-    const rev1 = vestingContract._closeVesting(addr3.address)
-    await expect(rev1).to.be.revertedWith('Cannot end vesting!')
-  })
+    it('time = 0s. Revert before group vesting starts', async function () {
+        const rev1 = vestingContract._closeVesting();
+        await expect(rev1).to.be.revertedWith('Cannot close vesting!');
+    })
 
-  it('time = 500s. Revert during group vesting process', async function () {
-    await increaseTime(500)
-    const rev2 = vestingContract._closeVesting(addr3.address)
-    await expect(rev2).to.be.revertedWith('Cannot end vesting!')
-  })
+    it('time = 500s. Revert during group vesting process', async function () {
+        await increaseTime(500);
+        const rev2 = vestingContract._closeVesting();
+        await expect(rev2).to.be.revertedWith('Cannot close vesting!');
+    })
 
-  it('time = 1050s. Revert after group vesting finishes but before the close offset ends', async function () {
-    await increaseTime(550)
-    const rev3 = vestingContract._closeVesting(addr3.address)
-    await expect(rev3).to.be.revertedWith('Cannot end vesting!')
-  })
+    it('time = 1050s. Revert after group vesting finishes but before the close offset ends', async function () {
+        await increaseTime(550);
+        const rev3 = vestingContract._closeVesting();
+        await expect(rev3).to.be.revertedWith('Cannot close vesting!');
+    })
 
-  it('time = 1250s. Should properly perform a vesting close', async function () {
-    await increaseTime(200)
-    await vestingContract._closeVesting(addr3.address)
-    expect(await colonyGovernanceToken.balanceOf(addr3.address)).to.equal(toTokens('50', decimals))
-  })
+    it('time = 1250s. Should properly perform a vesting close', async function () {
+        await increaseTime(200);
+        const tx = vestingContract._closeVesting();
+        await hasEmittedEvent(
+            tx,
+            'VestingScheduledForClosing',
+            [
+                70
+            ]
+        );
+    })
 
-  it('Prevents claiming when vesting is completed', async function () {
-    expect(await vestingContract.checkClaim(addr1.address)).to.equal(toTokens('50', decimals))
-    await expect(vestingContract.connect(addr1).claim(toTokens('50', decimals))).to.be.revertedWith('Vesting has been closed!')
-  })
+    it('Allows claiming of tokens during the close margin period', async function () {
+        expect(await vestingContract.checkClaim(addr1.address)).to.equal(toTokens('50', decimals));
+        await vestingContract.connect(addr1).claim(toTokens('10', decimals));
+        expect(await colonyGovernanceToken.balanceOf(addr1.address)).to.equal(toTokens('10', decimals));
+    })
 
-  it('Reclaims tokens if contract balance is still positive after vesting closes', async function () {
-    await colonyGovernanceToken.connect(mockAddress).transfer(vestingContract.address, toTokens('10', decimals))
-    await vestingContract._reclaim(addr2.address)
-    expect(await colonyGovernanceToken.balanceOf(addr2.address)).to.equal(toTokens('10', decimals))
-  })
+    it('time = 1330s. Prevents claiming when vesting is completed', async function () {
+        await increaseTime(80);
+        expect(await vestingContract.checkClaim(addr1.address)).to.equal(toTokens('40', decimals));
+        await expect(vestingContract.connect(addr1).claim(toTokens('40', decimals))).to.be.revertedWith('Vesting has been closed!');
+    })
+
+    it('Reclaims contract balance after vesting is closed', async function () {
+        const tx = vestingContract._reclaim(addr2.address);
+        await hasEmittedEvent(
+            tx,
+            'TokensReclaimed',
+            [
+                owner.address,
+                addr2.address,
+                toTokens('40', decimals)
+            ]
+        );
+        expect(await colonyGovernanceToken.balanceOf(addr2.address)).to.equal(toTokens('40', decimals));
+    })
+
 })
