@@ -357,7 +357,7 @@ contract Vesting is Ownable, Pausable {
         require(
             vestingScheduledForClosing &&
             _lastGroupDistributionFinishTimestamp() + vestingCloseOffset + vestingCloseMargin <= block.timestamp,
-            "Vesting has been closed!"
+            "Vesting has not been closed!"
         );
         _;
     }
