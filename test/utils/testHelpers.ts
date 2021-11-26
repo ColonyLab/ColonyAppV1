@@ -78,14 +78,29 @@ export async function hasEmittedEvent (promise: Promise<ContractTransaction>, ex
   expect(eventNamePresent).to.equal(true, 'Transaction didn\'t emit "' + expectedEvent + '" event')
 }
 
-export function daysToSeconds (days: number): number {
-  return days * time.d
+const yearsToSeconds = function (years: number): number {
+  return years * time.constants.y
+}
+const daysToSeconds = function (days: number): number {
+  return days * time.constants.d
+}
+const hoursToSeconds = function (hours: number): number {
+  return hours * time.constants.h
+}
+const minutesToSeconds = function (minutes: number): number {
+  return minutes * time.constants.m
 }
 
 export const time = {
-  s: 1,
-  m: 60,
-  h: 3600,
-  d: 86400,
-  y: 31536000
+  yearsToSeconds,
+  daysToSeconds,
+  hoursToSeconds,
+  minutesToSeconds,
+  constants: {
+    s: 1,
+    m: 60,
+    h: 3600,
+    d: 86400,
+    y: 31536000
+  }
 }
