@@ -33,15 +33,14 @@ async function main (): Promise<void> {
       vestingWallets.push(wallet.address)
       vestingGroups.push(groupsData[wallet.group])
       vestingAmouns.push(toTokens(wallet.amount, 18))
-
-      if (vestingWallets.length % chunkSize === 0 || Number(index) === (data.length - 1)) {
-        const tx = await vesting._setUserBulk(vestingWallets, vestingGroups, vestingAmouns)
-        await tx.wait()
-        console.log(`[Import Wallets Bulk] Chunk has been added: ${tx.hash}\n`)
-        vestingWallets = []
-        vestingGroups = []
-        vestingAmouns = []
-      }
+    }
+    if (vestingWallets.length % chunkSize === 0 || Number(index) === (data.length - 1)) {
+      const tx = await vesting._setUserBulk(vestingWallets, vestingGroups, vestingAmouns)
+      await tx.wait()
+      console.log(`[Import Wallets Bulk] Chunk has been added: ${tx.hash}\n`)
+      vestingWallets = []
+      vestingGroups = []
+      vestingAmouns = []
     }
   }
 
