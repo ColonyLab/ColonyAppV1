@@ -12,6 +12,7 @@ dotenv.config()
 
 const reportGas = process.env.REPORT_GAS?.toLowerCase() === 'true'
 const reportSize = process.env.REPORT_SIZE?.toLowerCase() === 'true'
+const mainnetPrivateKey = [undefined, ''].includes(process.env.MAINNET_PRIVATE_KEY) ? [] : [process.env.MAINNET_PRIVATE_KEY]
 
 export default {
   solidity: {
@@ -54,7 +55,7 @@ export default {
       url: process.env.AVAX_MAINNET_RPC_URL,
       gasPrice: 25000000000,
       chainId: 43114,
-      accounts: []
+      accounts: mainnetPrivateKey
     }
   },
 
