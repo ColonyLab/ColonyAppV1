@@ -22,8 +22,8 @@ async function main (): Promise<void> {
 
       directMintAddresses.push(wallet.address)
       directMintValues.push(toTokens(wallet.amount, 18))
+      totalAmountToMint = totalAmountToMint.add(wallet.amount)
     }
-    totalAmountToMint = totalAmountToMint.add(wallet.amount)
   }
 
   console.log('')
