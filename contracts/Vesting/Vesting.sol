@@ -32,6 +32,7 @@ contract Vesting is Ownable, Pausable {
     bool public vestingStarted;             // true when the vesting procedure has started
     uint public vestingStartTimestamp;      // the starting timestamp of vesting schedule
     bool public vestingScheduledForClosing; // true when the admin schedules vesting for closing
+    uint public vestingCloseTimestamp;      // the time when vesting is closed and no more claims can be made
     uint public vestingCloseOffset;         // offset in seconds when the admin is allowed to close vesting after last group vesting ends
     uint public vestingCloseMargin;         // adds additional offset in s after closeVesting() how long users will still be able to claim tokens
     IERC20 public vestingToken;             // the address of an ERC20 token used for vesting
@@ -57,7 +58,7 @@ contract Vesting is Ownable, Pausable {
     }
 
     event VestingStarted();
-    event VestingScheduledForClosing(uint margin);
+    event VestingScheduledForClosing(uint closeTimestamp);
     event UserDataSet(address user, uint groupId, uint vestAmount);
     event GroupDataSet(
         uint groupId,
@@ -296,7 +297,8 @@ contract Vesting is Ownable, Pausable {
         uint groupVestingEndTimestamp = _lastGroupDistributionFinishTimestamp();
         require(groupVestingEndTimestamp + vestingCloseOffset < block.timestamp, "Cannot close vesting!");
         vestingScheduledForClosing = true;
-        emit VestingScheduledForClosing(vestingCloseMargin);
+        vestingCloseTimestamp = block.timestamp + vestingCloseMargin;
+        emit VestingScheduledForClosing(vestingCloseTimestamp);
     }
 
 
@@ -346,17 +348,17 @@ contract Vesting is Ownable, Pausable {
     }
     modifier beforeVestingClosed {
         require(
-            !vestingScheduledForClosing ||
-            (vestingScheduledForClosing &&
-            _lastGroupDistributionFinishTimestamp() + vestingCloseOffset + vestingCloseMargin > block.timestamp),
+            vestingCloseTimestamp == 0
+            || vestingCloseTimestamp > block.timestamp,
             "Vesting has been closed!"
         );
         _;
     }
     modifier afterVestingClosed {
+        console.log("Current timestamp on check: ", block.timestamp);
         require(
-            vestingScheduledForClosing &&
-            _lastGroupDistributionFinishTimestamp() + vestingCloseOffset + vestingCloseMargin <= block.timestamp,
+            vestingCloseTimestamp != 0
+            && vestingCloseTimestamp <= block.timestamp,
             "Vesting has not been closed!"
         );
         _;

@@ -611,10 +611,7 @@ describe('Vesting contract - vesting closing operations', function () {
     const tx = vestingContract._closeVesting()
     await hasEmittedEvent(
       tx,
-      'VestingScheduledForClosing',
-      [
-        70
-      ]
+      'VestingScheduledForClosing'
     )
   })
 
