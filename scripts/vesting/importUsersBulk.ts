@@ -11,9 +11,10 @@ async function main (): Promise<void> {
   const vesting = Vesting.attach(vestingContractAddress)
 
   const groupsData: {[key: string]: string} = {}
-  let vestingWallets: Array<string> = []
-  let vestingGroups: Array<string> = []
-  let vestingAmouns: Array<string> = []
+  const vestingWallets: Array<string> = []
+  const vestingGroups: Array<string> = []
+  const vestingAmouns: Array<string> = []
+  let startIndex, endIndex
 
   console.log('[Import Wallets Bulk] Loading groups data from contract...')
   const groupEvents = await vesting.queryFilter(vesting.filters.GroupDataSet())
@@ -26,22 +27,28 @@ async function main (): Promise<void> {
       throw Error(`Unrecognized group in import data file: ${wallet.group}`)
     }
   }
-  for (const [index, wallet] of Object.entries(data)) {
+  for (const wallet of data) {
     if (wallet.group !== 'direct_mint') {
-      console.log(`[Import Wallets Bulk] Adding new wallet to the chunk: ${wallet.address}`)
+      console.log(`[Import Wallets Bulk] Loading wallet data: ${wallet.address}`)
 
       vestingWallets.push(wallet.address)
       vestingGroups.push(groupsData[wallet.group])
       vestingAmouns.push(toTokens(wallet.amount, 18))
     }
-    if (vestingWallets.length % chunkSize === 0 || Number(index) === (data.length - 1)) {
-      const tx = await vesting._setUserBulk(vestingWallets, vestingGroups, vestingAmouns)
-      await tx.wait()
-      console.log(`[Import Wallets Bulk] Chunk has been added: ${tx.hash}\n`)
-      vestingWallets = []
-      vestingGroups = []
-      vestingAmouns = []
-    }
+  }
+  const totalChunks = Math.ceil(vestingWallets.length / chunkSize)
+  console.log(`\n[Import Wallets Bulk] Found ${totalChunks} chunks in total with size of ${chunkSize}\n`)
+
+  for (let i = 0; i < totalChunks; i++) {
+    startIndex = i * chunkSize
+    endIndex = (i + 1) * chunkSize
+    const tx = await vesting._setUserBulk(
+      vestingWallets.slice(startIndex, endIndex),
+      vestingGroups.slice(startIndex, endIndex),
+      vestingAmouns.slice(startIndex, endIndex)
+    )
+    await tx.wait()
+    console.log(`[Import Wallets Bulk] Chunk ${i + 1}/${totalChunks} has been added: ${tx.hash}`)
   }
 
   console.log('[Import Wallets Bulk] Done!')
