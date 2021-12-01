@@ -4,7 +4,7 @@ import { toTokens } from '../../test/utils/testHelpers'
 import data from '../../data/governance-staking-vesting-deployment/test-wallets.json' // <---- define here file with data to import
 
 const vestingContractAddress = ''
-const chunkSize = 5
+const chunkSize = 100
 
 async function main (): Promise<void> {
   const Vesting = await ethers.getContractFactory('Vesting')
