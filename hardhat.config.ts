@@ -7,12 +7,25 @@ import 'hardhat-contract-sizer'
 import '@typechain/hardhat'
 import '@nomiclabs/hardhat-ethers'
 import '@nomiclabs/hardhat-waffle'
+import { task } from 'hardhat/config'
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { BigNumber } from 'ethers'
 
 dotenv.config()
 
 const reportGas = process.env.REPORT_GAS?.toLowerCase() === 'true'
 const reportSize = process.env.REPORT_SIZE?.toLowerCase() === 'true'
 const mainnetPrivateKey = [undefined, ''].includes(process.env.MAINNET_PRIVATE_KEY) ? [] : [process.env.MAINNET_PRIVATE_KEY]
+
+task('balances', 'Prints the list of AVAX account balances', async (args, hre): Promise<void> => {
+  const accounts: SignerWithAddress[] = await hre.ethers.getSigners()
+  for (const account of accounts) {
+    const balance: BigNumber = await hre.ethers.provider.getBalance(
+      account.address
+    )
+    console.log(`${account.address} has balance ${hre.ethers.utils.formatUnits(balance, 18)} AVAX`)
+  }
+})
 
 export default {
   solidity: {
