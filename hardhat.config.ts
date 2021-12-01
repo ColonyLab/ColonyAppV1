@@ -66,7 +66,7 @@ export default {
     },
     mainnet: {
       url: process.env.AVAX_MAINNET_RPC_URL,
-      gasPrice: 25000000000,
+      gasPrice: 30000000000,
       chainId: 43114,
       accounts: mainnetPrivateKey
     }

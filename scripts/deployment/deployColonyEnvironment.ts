@@ -6,7 +6,7 @@ import { setupGovernanceToken, setupVestingContract, setupStakingContract } from
 import { time, toTokens } from '../../test/utils/testHelpers'
 
 const vestingCloseOffset = time.daysToSeconds(180)
-const vestingCloseMargin = time.daysToSeconds(2)
+const vestingCloseMargin = time.daysToSeconds(7)
 
 const stakingAuthTokenAmount = toTokens('50', 18)
 const stakingAuthTokenPeriod = time.daysToSeconds(20)
