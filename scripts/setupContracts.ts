@@ -36,3 +36,11 @@ export async function setupStakingContract (governanceTokenAddress: string, minT
 
   return staking
 }
+
+export async function setupAntToken (): Promise<Contract> {
+  const AntToken = await ethers.getContractFactory('AntToken')
+  const antTokenInstance = await AntToken.deploy()
+  await antTokenInstance.deployed()
+
+  return antTokenInstance
+}
