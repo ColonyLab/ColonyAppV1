@@ -44,6 +44,11 @@ export async function getTime (): Promise<number> {
   return latestBlock.timestamp
 }
 
+export async function getBlockTime (blockNumber: string | number): Promise<number> {
+  const latestBlock = await ethers.provider.getBlock(blockNumber)
+  return latestBlock.timestamp
+}
+
 export function keccak256 (x: string): string {
   return ethers.utils.keccak256(x)
 }

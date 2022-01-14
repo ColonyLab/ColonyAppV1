@@ -8,3 +8,4 @@ artifacts/*
 cache/*
 .openzeppelin/unknown*
 typechain-types
+data/stake-snapshots/*
